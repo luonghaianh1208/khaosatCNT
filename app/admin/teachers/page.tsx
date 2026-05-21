@@ -62,7 +62,7 @@ export default function TeachersPage() {
     setLoading(true);
     try {
       const data = await getTeachers(search, typeFilter);
-      setTeachers(data);
+      setTeachers(data || []);
     } catch {
       setTeachers([]);
     } finally {

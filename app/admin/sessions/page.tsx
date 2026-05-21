@@ -39,7 +39,7 @@ export default function SessionsPage() {
     setLoading(true);
     try {
       const data = await getSessions();
-      setSessions(data);
+      setSessions(data || []);
     } catch {
       setSessions([]);
     } finally {

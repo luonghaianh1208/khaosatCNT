@@ -74,7 +74,7 @@ export default function StudentsPage() {
     setLoading(true);
     try {
       const data = await getStudents(search, gradeFilter);
-      setStudents(data);
+      setStudents(data || []);
     } catch {
       setStudents([]);
     } finally {
