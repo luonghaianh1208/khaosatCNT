@@ -1,7 +1,14 @@
+import TableSkeleton from '@/components/ui/TableSkeleton';
+import Skeleton from '@/components/ui/Skeleton';
+
 export default function Loading() {
   return (
-    <div className="flex items-center justify-center min-h-[200px]">
-      <div className="text-primary text-lg font-sans">Đang tải...</div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-10 w-32" />
+      </div>
+      <TableSkeleton rows={4} columns={5} />
     </div>
   );
 }
