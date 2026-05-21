@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { User, SurveySession, SurveyCompletion } from '@/lib/types';
 import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import { CheckCircle } from 'lucide-react';
 
 export default function SurveyPage() {
   const router = useRouter();
@@ -118,27 +120,29 @@ export default function SurveyPage() {
 
   if (completion?.is_submitted) {
     return (
-      <div className="bg-white rounded-modal p-6 shadow-md text-center">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-success/10 flex items-center justify-center">
-          <span className="text-2xl">✅</span>
-        </div>
-        <h2 className="text-lg font-medium text-text-primary mb-2">
-          Bạn đã hoàn thành khảo sát
-        </h2>
-        <p className="text-text-secondary mb-2">
-          Cảm ơn bạn đã tham gia khảo sát. Kết quả của bạn đã được ghi nhận.
-        </p>
-        <p className="text-text-muted text-sm mb-6">
-          Đợt khảo sát: {activeSession.name}
-        </p>
-        <div className="flex gap-3 justify-center">
-          <Button onClick={() => router.push('/survey/edit')}>
-            Xem / Chỉnh sửa
-          </Button>
-          <Button variant="secondary" onClick={() => router.push('/login')}>
-            Đăng xuất
-          </Button>
-        </div>
+      <div className="max-w-2xl mx-auto animate-fade-in container">
+        <Card padding="lg" className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-success/10 flex items-center justify-center">
+            <CheckCircle className="w-8 h-8 text-success" />
+          </div>
+          <h2 className="text-lg font-medium text-text-primary mb-2">
+            Bạn đã hoàn thành khảo sát
+          </h2>
+          <p className="text-text-secondary mb-2">
+            Cảm ơn bạn đã tham gia khảo sát. Kết quả của bạn đã được ghi nhận.
+          </p>
+          <p className="text-text-muted text-sm mb-6">
+            Đợt khảo sát: {activeSession.name}
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button onClick={() => router.push('/survey/edit')}>
+              Xem / Chỉnh sửa
+            </Button>
+            <Button variant="secondary" onClick={() => router.push('/login')}>
+              Đăng xuất
+            </Button>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -150,20 +154,24 @@ export default function SurveyPage() {
   });
 
   return (
-    <div className="bg-white rounded-modal p-6 shadow-md">
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-          <span className="text-2xl">📝</span>
+    <div className="max-w-2xl mx-auto space-y-6 animate-fade-in container">
+      {/* Header Card */}
+      <Card padding="lg" className="border-t-4 border-primary">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+            <span className="text-2xl">📝</span>
+          </div>
+          <h2 className="text-xl font-medium text-text-primary mb-2">
+            Chào mừng bạn đến với khảo sát
+          </h2>
+          <p className="text-text-secondary">
+            Khảo sát được thực hiện hoàn toàn ẩn danh
+          </p>
         </div>
-        <h2 className="text-xl font-medium text-text-primary mb-2">
-          Chào mừng bạn đến với khảo sát
-        </h2>
-        <p className="text-text-secondary">
-          Khảo sát được thực hiện hoàn toàn ẩn danh
-        </p>
-      </div>
+      </Card>
 
-      <div className="bg-bgLight rounded-modal p-4 mb-6">
+      {/* User Info Card */}
+      <Card>
         <h3 className="text-sm font-medium text-text-primary mb-3">Thông tin của bạn</h3>
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
@@ -175,9 +183,10 @@ export default function SurveyPage() {
             <p className="text-text-primary font-medium">{user?.class_name}</p>
           </div>
         </div>
-      </div>
+      </Card>
 
-      <div className="bg-bgLight rounded-modal p-4 mb-6">
+      {/* Session Info Card */}
+      <Card className="border-l-4 border-warning">
         <h3 className="text-sm font-medium text-text-primary mb-3">Thông tin khảo sát</h3>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
@@ -193,7 +202,7 @@ export default function SurveyPage() {
             <span className="text-crimson font-medium">{deadlineDate}</span>
           </div>
         </div>
-      </div>
+      </Card>
 
       <div className="flex justify-center">
         <Button onClick={() => router.push('/survey/questions')}>

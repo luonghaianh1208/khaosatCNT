@@ -5,8 +5,11 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { User, Teacher, TeacherClassAssignment, SurveyResponse, HomeroomResponse } from '@/lib/types';
 import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import EmptyState from '@/components/ui/EmptyState';
 import SurveyGrid, { getDisabledSubjectForClass } from '@/components/survey/SurveyGrid';
 import HomeroomForm from '@/components/survey/HomeroomForm';
+import { AlertCircle } from 'lucide-react';
 
 type Part = 'subject' | 'homeroom';
 
@@ -301,9 +304,9 @@ export default function QuestionsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Progress Bar */}
-      <div className="bg-white rounded-modal p-4 shadow-md">
+    <div className="max-w-4xl mx-auto space-y-6 container">
+      {/* Sticky Progress Bar */}
+      <div className="bg-white rounded-modal p-4 shadow-md sticky top-4 z-10">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-text-secondary">
             {currentPart === 'subject' ? 'Phần I: Đánh giá giáo viên bộ môn' : 'Phần II: Đánh giá giáo viên chủ nhiệm'}
@@ -320,20 +323,24 @@ export default function QuestionsPage() {
 
       {/* Error message */}
       {error && (
-        <div className="bg-crimson/10 border border-crimson text-crimson px-4 py-3 rounded-[2px] text-sm">
-          {error}
-        </div>
+        <Card className="flex items-center gap-3 bg-crimson/10 border-crimson">
+          <AlertCircle className="w-5 h-5 text-crimson flex-shrink-0" />
+          <p className="text-crimson text-sm">{error}</p>
+        </Card>
       )}
 
       {/* Part I: Subject Teachers */}
       {currentPart === 'subject' && (
-        <div className="bg-white rounded-modal p-6 shadow-md">
+        <Card padding="lg" className="animate-scale-in">
           <h2 className="text-lg font-medium text-text-primary mb-6 text-center">
             Đánh giá giáo viên bộ môn giảng dạy
           </h2>
 
           {subjectTeachers.length === 0 ? (
-            <p className="text-text-secondary text-center py-4">Không có giáo viên bộ môn được gán cho lớp của bạn.</p>
+            <EmptyState
+              title="Không có giáo viên bộ môn"
+              description="Không có giáo viên bộ môn được gán cho lớp của bạn."
+            />
           ) : (
             <SurveyGrid
               teachers={subjectTeachers}
@@ -349,12 +356,12 @@ export default function QuestionsPage() {
               Tiếp tục Phần II
             </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Part II: Homeroom Teacher */}
       {currentPart === 'homeroom' && homeroomTeacher && (
-        <div className="bg-white rounded-modal p-6 shadow-md">
+        <Card padding="lg" className="animate-scale-in">
           <h2 className="text-lg font-medium text-text-primary mb-6 text-center">
             Đánh giá giáo viên chủ nhiệm
           </h2>
@@ -375,14 +382,17 @@ export default function QuestionsPage() {
               {submitting ? 'Đang nộp...' : 'Nộp khảo sát'}
             </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Part II: No homeroom teacher */}
       {currentPart === 'homeroom' && !homeroomTeacher && (
-        <div className="bg-white rounded-modal p-6 shadow-md text-center">
-          <p className="text-text-secondary mb-4">Không có giáo viên chủ nhiệm được gán cho lớp của bạn.</p>
-          <div className="flex justify-between">
+        <Card padding="lg" className="animate-scale-in text-center">
+          <EmptyState
+            title="Không có giáo viên chủ nhiệm"
+            description="Không có giáo viên chủ nhiệm được gán cho lớp của bạn."
+          />
+          <div className="flex justify-between mt-6">
             <Button variant="secondary" onClick={() => setCurrentPart('subject')}>
               Quay lại
             </Button>
@@ -390,7 +400,7 @@ export default function QuestionsPage() {
               {submitting ? 'Đang nộp...' : 'Nộp khảo sát'}
             </Button>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );
