@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Cache
+.next/
+.cache/
+.stylelintcache/
+
+# pnpm
+pnpm-debug.log*
+pnpm-store/
+
+# Supabase
+.supabase/
+
+# Temporary
+.tmp/
+*.tmp

@@ -1,0 +1,8 @@
+allowBuilds:
+  '0': '@netlify/esbuild'
+  '1': '@parcel/watcher'
+  '2': sharp
+  '@netlify/esbuild': set this to true or false
+  '@parcel/watcher': set this to true or false
+  sharp: set this to true or false
+onlyBuiltDependencies: []
