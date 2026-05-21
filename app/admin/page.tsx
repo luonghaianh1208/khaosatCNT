@@ -14,11 +14,12 @@ export default function AdminDashboard() {
     avgScore: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     getDashboardStats()
       .then((data) => { if (data) setStats(data); })
-      .catch(() => {})
+      .catch(() => setFetchError('Không thể tải dữ liệu dashboard. Vui lòng kiểm tra cấu hình Supabase.'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -33,6 +34,11 @@ export default function AdminDashboard() {
 
   return (
     <div>
+      {fetchError && (
+        <div className="mb-6 bg-crimson/10 border border-crimson text-crimson px-4 py-3 rounded text-sm">
+          {fetchError}
+        </div>
+      )}
       <div className="mb-8">
         <h1 className="text-28 font-bold text-textPrimary mb-2">Dashboard</h1>
         <p className="text-16 text-textSecondary">Tổng quan về đợt khảo sát hiện tại</p>

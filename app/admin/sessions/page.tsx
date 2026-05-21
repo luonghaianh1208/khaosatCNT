@@ -26,6 +26,7 @@ export default function SessionsPage() {
   const [editingSession, setEditingSession] = useState<SurveySession | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -37,10 +38,12 @@ export default function SessionsPage() {
 
   const fetchSessions = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const data = await getSessions();
       setSessions(data || []);
     } catch {
+      setFetchError('Không thể tải danh sách đợt khảo sát. Vui lòng kiểm tra cấu hình Supabase.');
       setSessions([]);
     } finally {
       setLoading(false);
@@ -132,6 +135,12 @@ export default function SessionsPage() {
           + Tạo mới
         </Button>
       </div>
+
+      {fetchError && (
+        <div className="mb-4 bg-crimson/10 border border-crimson text-crimson px-4 py-3 rounded text-sm">
+          {fetchError}
+        </div>
+      )}
 
       <Card>
         {loading ? (

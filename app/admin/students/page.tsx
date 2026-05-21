@@ -50,6 +50,7 @@ export default function StudentsPage() {
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState('');
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const [newStudent, setNewStudent] = useState<NewStudentForm>({
     username: '',
@@ -72,10 +73,12 @@ export default function StudentsPage() {
 
   const fetchStudents = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const data = await getStudents(search, gradeFilter);
       setStudents(data || []);
     } catch {
+      setFetchError('Không thể tải danh sách học sinh. Vui lòng kiểm tra cấu hình Supabase.');
       setStudents([]);
     } finally {
       setLoading(false);
@@ -229,6 +232,12 @@ export default function StudentsPage() {
           </select>
         </div>
       </Card>
+
+      {fetchError && (
+        <div className="mb-4 bg-crimson/10 border border-crimson text-crimson px-4 py-3 rounded text-sm">
+          {fetchError}
+        </div>
+      )}
 
       {/* Table */}
       <Card>

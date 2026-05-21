@@ -47,6 +47,7 @@ export default function TeachersPage() {
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [newClassName, setNewClassName] = useState('');
@@ -60,10 +61,12 @@ export default function TeachersPage() {
 
   const fetchTeachers = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const data = await getTeachers(search, typeFilter);
       setTeachers(data || []);
     } catch {
+      setFetchError('Không thể tải danh sách giáo viên. Vui lòng kiểm tra cấu hình Supabase.');
       setTeachers([]);
     } finally {
       setLoading(false);
@@ -178,6 +181,12 @@ export default function TeachersPage() {
           </Button>
         </div>
       </div>
+
+      {fetchError && (
+        <div className="mb-4 bg-crimson/10 border border-crimson text-crimson px-4 py-3 rounded text-sm">
+          {fetchError}
+        </div>
+      )}
 
       {/* Filter Row */}
       <Card className="mb-6">
