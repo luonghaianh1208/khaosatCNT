@@ -24,18 +24,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (checking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bgLight">
+      <div className="min-h-screen flex items-center justify-center bg-bg-light">
         <div className="text-primary text-lg font-sans">Đang tải...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 bg-bgLight p-6">
-        {children}
+    <div className="flex min-h-screen bg-bg-light">
+      {/* Desktop Sidebar - hidden on mobile/tablet */}
+      <div className="hidden lg:block">
+        <Sidebar />
+      </div>
+
+      {/* Main Content */}
+      <main className="flex-1 lg:ml-0">
+        <div className="p-4 pt-16 lg:p-8 lg:pt-6 max-w-7xl mx-auto">
+          {children}
+        </div>
       </main>
+
+      {/* Mobile Header */}
+      <div className="fixed top-0 left-0 right-0 lg:hidden bg-primary text-white p-4 z-40 flex items-center justify-between">
+        <span className="font-semibold">Quản trị</span>
+      </div>
     </div>
   );
 }

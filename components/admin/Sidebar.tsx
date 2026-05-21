@@ -2,39 +2,58 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import {
+  LayoutDashboard,
+  ClipboardList,
+  Users,
+  GraduationCap,
+  BarChart3,
+  School,
+} from 'lucide-react';
 
 const navItems = [
-  { href: '/admin', label: 'Bảng điều khiển' },
-  { href: '/admin/sessions', label: 'Quản lý đợt khảo sát' },
-  { href: '/admin/students', label: 'Quản lý học sinh' },
-  { href: '/admin/teachers', label: 'Quản lý giáo viên' },
-  { href: '/admin/reports', label: 'Báo cáo & Thống kê' },
+  { href: '/admin', label: 'Bảng điều khiển', icon: LayoutDashboard },
+  { href: '/admin/sessions', label: 'Quản lý đợt khảo sát', icon: ClipboardList },
+  { href: '/admin/students', label: 'Quản lý học sinh', icon: Users },
+  { href: '/admin/teachers', label: 'Quản lý giáo viên', icon: GraduationCap },
+  { href: '/admin/reports', label: 'Báo cáo & Thống kê', icon: BarChart3 },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="bg-primary w-64 min-h-screen text-white">
+    <aside className="bg-primary w-64 min-h-screen text-white flex flex-col">
+      {/* Brand Section */}
       <div className="p-6 border-b border-white/20">
-        <h1 className="text-xl font-sans font-semibold">Trang Quản Trị</h1>
-        <p className="text-sm text-white/70 mt-1">THPT Chuyên Nguyễn Trãi</p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-white/10 rounded-lg">
+            <School className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold">THPT Chuyên Nguyễn Trãi</h1>
+            <p className="text-xs text-white/60">Hệ thống quản trị</p>
+          </div>
+        </div>
       </div>
 
-      <nav className="mt-6">
+      {/* Navigation */}
+      <nav className="mt-6 flex-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
+          const Icon = item.icon;
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center px-6 py-3 text-sm font-sans transition-colors ${
+              className={`flex items-center gap-3 mx-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? 'bg-white/10 border-l-4 border-l-primary'
-                  : 'hover:bg-white/5 border-l-4 border-l-transparent'
+                  ? 'bg-white/15 text-white shadow-md'
+                  : 'text-white/70 hover:bg-white/5 hover:text-white'
               }`}
             >
+              <Icon className="w-5 h-5 flex-shrink-0" />
               {item.label}
             </Link>
           );
