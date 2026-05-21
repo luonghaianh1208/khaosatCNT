@@ -9,13 +9,13 @@ import Card from '@/components/ui/Card';
 import * as XLSX from 'xlsx';
 
 interface StudentRow {
-  username: string;
-  password?: string;
-  full_name: string;
-  date_of_birth: string;
-  gender: string;
-  grade: string;
-  class_name: string;
+  'Tên đăng nhập': string;
+  'Mật khẩu'?: string;
+  'Họ tên': string;
+  'Ngày sinh': string;
+  'Giới tính': string;
+  'Khối': string;
+  'Lớp': string;
 }
 
 interface ValidatedRow extends StudentRow {
@@ -31,40 +31,40 @@ const DEFAULT_PASSWORD = 'Haiphong@2026';
 function validateRow(row: StudentRow): ValidatedRow {
   const errors: string[] = [];
 
-  if (!row.username || row.username.trim() === '') {
-    errors.push('Username không được để trống');
+  if (!row['Tên đăng nhập'] || row['Tên đăng nhập'].trim() === '') {
+    errors.push('Tên đăng nhập không được để trống');
   }
 
-  if (!row.full_name || row.full_name.trim() === '') {
+  if (!row['Họ tên'] || row['Họ tên'].trim() === '') {
     errors.push('Họ tên không được để trống');
   }
 
-  if (!row.date_of_birth || row.date_of_birth.trim() === '') {
+  if (!row['Ngày sinh'] || row['Ngày sinh'].trim() === '') {
     errors.push('Ngày sinh không được để trống');
   } else {
     const datePattern = /^\d{2}\/\d{2}\/\d{4}$/;
-    if (!datePattern.test(row.date_of_birth)) {
+    if (!datePattern.test(row['Ngày sinh'])) {
       errors.push('Ngày sinh phải theo định dạng DD/MM/YYYY');
     }
   }
 
-  if (!row.gender || row.gender.trim() === '') {
+  if (!row['Giới tính'] || row['Giới tính'].trim() === '') {
     errors.push('Giới tính không được để trống');
-  } else if (!VALID_GENDERS.includes(row.gender)) {
+  } else if (!VALID_GENDERS.includes(row['Giới tính'])) {
     errors.push(`Giới tính phải là một trong: ${VALID_GENDERS.join(', ')}`);
   }
 
-  if (!row.grade || row.grade.trim() === '') {
+  if (!row['Khối'] || row['Khối'].trim() === '') {
     errors.push('Khối không được để trống');
-  } else if (!VALID_GRADES.includes(row.grade)) {
+  } else if (!VALID_GRADES.includes(row['Khối'])) {
     errors.push(`Khối phải là một trong: ${VALID_GRADES.join(', ')}`);
   }
 
-  if (!row.class_name || row.class_name.trim() === '') {
+  if (!row['Lớp'] || row['Lớp'].trim() === '') {
     errors.push('Lớp không được để trống');
   }
 
-  const processedPassword = (row.password && row.password.trim() !== '') ? row.password.trim() : DEFAULT_PASSWORD;
+  const processedPassword = (row['Mật khẩu'] && row['Mật khẩu'].trim() !== '') ? row['Mật khẩu'].trim() : DEFAULT_PASSWORD;
 
   return {
     ...row,
@@ -101,41 +101,41 @@ export default function ImportStudentsPage() {
   const downloadTemplate = () => {
     const template = [
       {
-        username: 'hs001',
-        password: '',
-        full_name: 'Nguyễn Văn A',
-        date_of_birth: '01/01/2010',
-        gender: 'Nam',
-        grade: '10',
-        class_name: '10A1',
+        'Tên đăng nhập': 'hs001',
+        'Mật khẩu': '',
+        'Họ tên': 'Nguyễn Văn A',
+        'Ngày sinh': '01/01/2010',
+        'Giới tính': 'Nam',
+        'Khối': '10',
+        'Lớp': '10A1',
       },
       {
-        username: 'hs002',
-        password: 'MyPassword123',
-        full_name: 'Trần Thị B',
-        date_of_birth: '15/03/2010',
-        gender: 'Nữ',
-        grade: '10',
-        class_name: '10A2',
+        'Tên đăng nhập': 'hs002',
+        'Mật khẩu': 'MyPassword123',
+        'Họ tên': 'Trần Thị B',
+        'Ngày sinh': '15/03/2010',
+        'Giới tính': 'Nữ',
+        'Khối': '10',
+        'Lớp': '10A2',
       },
     ];
 
     const ws = XLSX.utils.json_to_sheet(template);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Students');
+    XLSX.utils.book_append_sheet(wb, ws, 'Học sinh');
 
     const colWidths = [
-      { wch: 15 },
-      { wch: 20 },
-      { wch: 25 },
-      { wch: 15 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 28 },
+      { wch: 14 },
       { wch: 10 },
-      { wch: 10 },
+      { wch: 8 },
       { wch: 10 },
     ];
     ws['!cols'] = colWidths;
 
-    XLSX.writeFile(wb, 'student_template.xlsx');
+    XLSX.writeFile(wb, 'Mau_Import_Hoc_Sinh.xlsx');
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -153,16 +153,7 @@ export default function ImportStudentsPage() {
       const jsonData = XLSX.utils.sheet_to_json<StudentRow>(worksheet, { defval: '' });
 
       const validated = jsonData.map((row) => {
-        const processedRow = {
-          username: String(row.username || '').trim(),
-          password: String(row.password || '').trim(),
-          full_name: String(row.full_name || '').trim(),
-          date_of_birth: String(row.date_of_birth || '').trim(),
-          gender: String(row.gender || '').trim(),
-          grade: String(row.grade || '').trim(),
-          class_name: String(row.class_name || '').trim(),
-        };
-        return validateRow(processedRow);
+        return validateRow(row);
       });
 
       setParsedData(validated);
@@ -181,8 +172,8 @@ export default function ImportStudentsPage() {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     for (const row of validRows) {
-      const dob = parseDate(row.date_of_birth);
-      const email = `${row.username}@khaosat.ngt.edu.vn`;
+      const dob = parseDate(row['Ngày sinh']);
+      const email = `${row['Tên đăng nhập']}@khaosat.ngt.edu.vn`;
 
       try {
         // Create auth user via Supabase Admin API
@@ -228,12 +219,12 @@ export default function ImportStudentsPage() {
         // Upsert user profile
         await supabaseAdmin.from('users').upsert(
           {
-            username: row.username,
-            full_name: row.full_name,
+            username: row['Tên đăng nhập'],
+            full_name: row['Họ tên'],
             date_of_birth: dob,
-            gender: row.gender,
-            grade: row.grade,
-            class_name: row.class_name,
+            gender: row['Giới tính'],
+            grade: row['Khối'],
+            class_name: row['Lớp'],
             auth_user_id: authUserId,
           },
           { onConflict: 'username' }
@@ -241,7 +232,7 @@ export default function ImportStudentsPage() {
 
         successCount++;
       } catch (error) {
-        console.error('Error importing student:', row.username, error);
+        console.error('Error importing student:', row['Tên đăng nhập'], error);
         errorCount++;
       }
     }
@@ -336,13 +327,13 @@ export default function ImportStudentsPage() {
           <div className="mt-6 pt-6 border-t border-border">
             <h3 className="font-semibold mb-2">Cấu trúc file mẫu:</h3>
             <div className="text-sm text-textSecondary">
-              <p><strong>username:</strong> Tên đăng nhập (duy nhất)</p>
-              <p><strong>password:</strong> Mật khẩu (để trống → mặc định: Haiphong@2026)</p>
-              <p><strong>full_name:</strong> Họ và tên đầy đủ</p>
-              <p><strong>date_of_birth:</strong> Ngày sinh (DD/MM/YYYY)</p>
-              <p><strong>gender:</strong> Giới tính (Nam / Nữ / Khác)</p>
-              <p><strong>grade:</strong> Khối (10 / 11 / 12)</p>
-              <p><strong>class_name:</strong> Tên lớp (VD: 10A1)</p>
+              <p><strong>Tên đăng nhập:</strong> Tên đăng nhập (duy nhất)</p>
+              <p><strong>Mật khẩu:</strong> Mật khẩu (để trống → mặc định: Haiphong@2026)</p>
+              <p><strong>Họ tên:</strong> Họ và tên đầy đủ</p>
+              <p><strong>Ngày sinh:</strong> Ngày sinh (DD/MM/YYYY)</p>
+              <p><strong>Giới tính:</strong> Giới tính (Nam / Nữ / Khác)</p>
+              <p><strong>Khối:</strong> Khối (10 / 11 / 12)</p>
+              <p><strong>Lớp:</strong> Tên lớp (VD: 10A1)</p>
             </div>
           </div>
 
@@ -402,7 +393,7 @@ export default function ImportStudentsPage() {
                   <tr className="border-b border-border">
                     <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary w-12">#</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Trạng thái</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Username</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Tên đăng nhập</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Họ tên</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Ngày sinh</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Giới tính</th>
@@ -425,12 +416,12 @@ export default function ImportStudentsPage() {
                           <span className="text-crimson text-lg">✗</span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-sm">{row.username}</td>
-                      <td className="py-3 px-4 text-sm">{row.full_name}</td>
-                      <td className="py-3 px-4 text-sm">{row.date_of_birth}</td>
-                      <td className="py-3 px-4 text-sm">{row.gender}</td>
-                      <td className="py-3 px-4 text-sm">{row.grade}</td>
-                      <td className="py-3 px-4 text-sm">{row.class_name}</td>
+                      <td className="py-3 px-4 text-sm">{row['Tên đăng nhập']}</td>
+                      <td className="py-3 px-4 text-sm">{row['Họ tên']}</td>
+                      <td className="py-3 px-4 text-sm">{row['Ngày sinh']}</td>
+                      <td className="py-3 px-4 text-sm">{row['Giới tính']}</td>
+                      <td className="py-3 px-4 text-sm">{row['Khối']}</td>
+                      <td className="py-3 px-4 text-sm">{row['Lớp']}</td>
                       <td className="py-3 px-4 text-sm text-crimson">
                         {row.errors.length > 0 ? row.errors.join('; ') : '-'}
                       </td>

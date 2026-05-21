@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const navItems = [
-  { href: '/admin', label: 'Dashboard' },
+  { href: '/admin', label: 'Bảng điều khiển' },
   { href: '/admin/sessions', label: 'Quản lý đợt khảo sát' },
   { href: '/admin/students', label: 'Quản lý học sinh' },
   { href: '/admin/teachers', label: 'Quản lý giáo viên' },
@@ -17,7 +17,7 @@ export default function Sidebar() {
   return (
     <aside className="bg-primary w-64 min-h-screen text-white">
       <div className="p-6 border-b border-white/20">
-        <h1 className="text-xl font-sans font-semibold">Admin Panel</h1>
+        <h1 className="text-xl font-sans font-semibold">Trang Quản Trị</h1>
         <p className="text-sm text-white/70 mt-1">THPT Chuyên Nguyễn Trãi</p>
       </div>
 

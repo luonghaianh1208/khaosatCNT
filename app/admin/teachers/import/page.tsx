@@ -9,11 +9,11 @@ import Card from '@/components/ui/Card';
 import * as XLSX from 'xlsx';
 
 interface TeacherRow {
-  full_name: string;
-  teacher_type: string;
-  subject: string;
-  subject_code: string;
-  class_name: string;
+  'Họ tên': string;
+  'Loại GV': string;
+  'Môn dạy': string;
+  'Mã môn': string;
+  'Lớp': string;
 }
 
 interface ValidatedRow extends TeacherRow {
@@ -33,33 +33,33 @@ const TEACHER_TYPE_LABELS: Record<string, string> = {
 function validateRow(row: TeacherRow, existingSubjectCodes: string[]): ValidatedRow {
   const errors: string[] = [];
 
-  if (!row.full_name || row.full_name.trim() === '') {
+  if (!row['Họ tên'] || row['Họ tên'].trim() === '') {
     errors.push('Họ tên không được để trống');
   }
 
-  if (!row.teacher_type || row.teacher_type.trim() === '') {
+  if (!row['Loại GV'] || row['Loại GV'].trim() === '') {
     errors.push('Loại giáo viên không được để trống');
-  } else if (!VALID_TEACHER_TYPES.includes(row.teacher_type)) {
+  } else if (!VALID_TEACHER_TYPES.includes(row['Loại GV'])) {
     errors.push(`Loại giáo viên phải là một trong: ${VALID_TEACHER_TYPES.join(', ')}`);
   }
 
-  if (row.subject_code && row.subject_code.trim() !== '' && existingSubjectCodes.length > 0) {
-    if (!existingSubjectCodes.includes(row.subject_code.trim())) {
-      errors.push(`Mã môn "${row.subject_code}" không hợp lệ`);
+  if (row['Mã môn'] && row['Mã môn'].trim() !== '' && existingSubjectCodes.length > 0) {
+    if (!existingSubjectCodes.includes(row['Mã môn'].trim())) {
+      errors.push(`Mã môn "${row['Mã môn']}" không hợp lệ`);
     }
   }
 
-  if (!row.class_name || row.class_name.trim() === '') {
+  if (!row['Lớp'] || row['Lớp'].trim() === '') {
     errors.push('Lớp không được để trống');
   }
 
   return {
     ...row,
-    full_name: row.full_name?.trim() || '',
-    teacher_type: row.teacher_type?.trim() || '',
-    subject: row.subject?.trim() || '',
-    subject_code: row.subject_code?.trim() || '',
-    class_name: row.class_name?.trim() || '',
+    'Họ tên': row['Họ tên']?.trim() || '',
+    'Loại GV': row['Loại GV']?.trim() || '',
+    'Môn dạy': row['Môn dạy']?.trim() || '',
+    'Mã môn': row['Mã môn']?.trim() || '',
+    'Lớp': row['Lớp']?.trim() || '',
     isValid: errors.length === 0,
     errors,
   };
@@ -80,31 +80,31 @@ export default function ImportTeachersPage() {
   const downloadTemplate = () => {
     const template = [
       {
-        full_name: 'Nguyễn Văn A',
-        teacher_type: 'chuyen_chinh',
-        subject: 'Toán',
-        subject_code: 'toan',
-        class_name: '10A1',
+        'Họ tên': 'Nguyễn Văn A',
+        'Loại GV': 'chuyen_chinh',
+        'Môn dạy': 'Toán',
+        'Mã môn': 'toan',
+        'Lớp': '10A1',
       },
       {
-        full_name: 'Nguyễn Văn A',
-        teacher_type: 'chuyen_chinh',
-        subject: 'Toán',
-        subject_code: 'toan',
-        class_name: '10A2',
+        'Họ tên': 'Nguyễn Văn A',
+        'Loại GV': 'chuyen_chinh',
+        'Môn dạy': 'Toán',
+        'Mã môn': 'toan',
+        'Lớp': '10A2',
       },
       {
-        full_name: 'Trần Thị B',
-        teacher_type: 'bo_mon',
-        subject: 'Vật lý',
-        subject_code: 'ly',
-        class_name: '11A1',
+        'Họ tên': 'Trần Thị B',
+        'Loại GV': 'bo_mon',
+        'Môn dạy': 'Vật lý',
+        'Mã môn': 'ly',
+        'Lớp': '11A1',
       },
     ];
 
     const ws = XLSX.utils.json_to_sheet(template);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Teachers');
+    XLSX.utils.book_append_sheet(wb, ws, 'Giáo viên');
 
     const colWidths = [
       { wch: 25 },
@@ -115,7 +115,7 @@ export default function ImportTeachersPage() {
     ];
     ws['!cols'] = colWidths;
 
-    XLSX.writeFile(wb, 'teacher_template.xlsx');
+    XLSX.writeFile(wb, 'Mau_Import_Giao_Vien.xlsx');
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,14 +134,7 @@ export default function ImportTeachersPage() {
 
       // For validation, we allow all subject codes since we don't have a subjects table
       const validated = jsonData.map((row) => {
-        const processedRow = {
-          full_name: String(row.full_name || '').trim(),
-          teacher_type: String(row.teacher_type || '').trim(),
-          subject: String(row.subject || '').trim(),
-          subject_code: String(row.subject_code || '').trim(),
-          class_name: String(row.class_name || '').trim(),
-        };
-        return validateRow(processedRow, []);
+        return validateRow(row, []);
       });
 
       setParsedData(validated);
@@ -159,7 +152,7 @@ export default function ImportTeachersPage() {
     // Group rows by teacher name to handle multi-class assignments
     const teacherMap = new Map<string, ValidatedRow[]>();
     for (const row of validRows) {
-      const key = row.full_name;
+      const key = row['Họ tên'];
       if (!teacherMap.has(key)) {
         teacherMap.set(key, []);
       }
@@ -169,7 +162,7 @@ export default function ImportTeachersPage() {
     // Upsert each teacher and create class assignments
     for (const [teacherName, rows] of teacherMap) {
       // Get unique classes for this teacher
-      const classes = [...new Set(rows.map(r => r.class_name))];
+      const classes = [...new Set(rows.map(r => r['Lớp']))];
       const firstRow = rows[0];
 
       // Upsert teacher
@@ -178,9 +171,9 @@ export default function ImportTeachersPage() {
         .upsert(
           {
             full_name: teacherName,
-            teacher_type: firstRow.teacher_type,
-            subject: firstRow.subject || null,
-            subject_code: firstRow.subject_code || null,
+            teacher_type: firstRow['Loại GV'],
+            subject: firstRow['Môn dạy'] || null,
+            subject_code: firstRow['Mã môn'] || null,
           },
           { onConflict: 'full_name' }
         )
@@ -307,18 +300,19 @@ export default function ImportTeachersPage() {
           <div className="mt-6 pt-6 border-t border-border">
             <h3 className="font-semibold mb-2">Cấu trúc file mẫu:</h3>
             <div className="text-sm text-textSecondary">
-              <p><strong>full_name:</strong> Họ và tên đầy đủ</p>
-              <p><strong>teacher_type:</strong> Loại giáo viên (chuyen_chinh / chuyen_phu / bo_mon / chu_nhiem)</p>
-              <p><strong>subject:</strong> Môn dạy (VD: Toán, Vật lý) - optional</p>
-              <p><strong>subject_code:</strong> Mã môn - optional</p>
-              <p><strong>class_name:</strong> Tên lớp (VD: 10A1)</p>
+              <p><strong>Họ tên:</strong> Họ và tên đầy đủ</p>
+              <p><strong>Loại GV:</strong> Loại giáo viên (chuyen_chinh / chuyen_phu / bo_mon / chu_nhiem)</p>
+              <p><strong>Môn dạy:</strong> Môn dạy (VD: Toán, Vật lý) - tùy chọn</p>
+              <p><strong>Mã môn:</strong> Mã môn - tùy chọn</p>
+              <p><strong>Lớp:</strong> Tên lớp (VD: 10A1)</p>
             </div>
           </div>
 
           <div className="mt-4 text-sm text-textSecondary">
-            <p className="font-semibold text-warning">Lưu ý:</p>
-            <p>1 giáo viên có thể dạy nhiều lớp - hãy tạo nhiều dòng cho cùng 1 giáo viên với các lớp khác nhau.</p>
-            <p>VD: Nguyễn Văn A dạy lớp 10A1 và 10A2 → 2 dòng với cùng full_name.</p>
+            <p className="font-semibold text-warning">Lưu ý quan trọng:</p>
+            <p>• <strong>1 giáo viên dạy nhiều lớp:</strong> Tạo nhiều dòng cùng full_name, mỗi dòng ghi 1 lớp khác nhau.</p>
+            <p>  VD: GV Nguyễn Văn A dạy 10A1, 10A2, 10A3 → cần 3 dòng có cùng full_name.</p>
+            <p>• Nếu 1 dòng có nhiều lớp (cách liệt kê bằng dấu phẩy), hệ thống sẽ chỉ lấy lớp đầu tiên.</p>
           </div>
 
           <div className="mt-6 flex justify-end">
@@ -399,15 +393,15 @@ export default function ImportTeachersPage() {
                           <span className="text-crimson text-lg">✗</span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-sm">{row.full_name}</td>
+                      <td className="py-3 px-4 text-sm">{row['Họ tên']}</td>
                       <td className="py-3 px-4">
                         <Badge variant="secondary">
-                          {TEACHER_TYPE_LABELS[row.teacher_type] || row.teacher_type}
+                          {TEACHER_TYPE_LABELS[row['Loại GV']] || row['Loại GV']}
                         </Badge>
                       </td>
-                      <td className="py-3 px-4 text-sm">{row.subject || '-'}</td>
-                      <td className="py-3 px-4 text-sm">{row.subject_code || '-'}</td>
-                      <td className="py-3 px-4 text-sm">{row.class_name}</td>
+                      <td className="py-3 px-4 text-sm">{row['Môn dạy'] || '-'}</td>
+                      <td className="py-3 px-4 text-sm">{row['Mã môn'] || '-'}</td>
+                      <td className="py-3 px-4 text-sm">{row['Lớp']}</td>
                       <td className="py-3 px-4 text-sm text-crimson">
                         {row.errors.length > 0 ? row.errors.join('; ') : '-'}
                       </td>
