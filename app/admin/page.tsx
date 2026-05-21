@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import Card from '@/components/ui/Card';
 import ProgressBar from '@/components/ui/ProgressBar';
+import { Users, GraduationCap, Target, CheckCircle, TrendingUp } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -74,32 +75,78 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      <h1 className="text-28 font-bold text-textPrimary mb-6">Dashboard</h1>
+      <div className="mb-8">
+        <h1 className="text-28 font-bold text-textPrimary mb-2">Dashboard</h1>
+        <p className="text-16 text-textSecondary">Tổng quan về đợt khảo sát hiện tại</p>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <Card>
-          <div className="text-12 text-textSecondary mb-1">Tổng số học sinh</div>
-          <div className="text-28 font-bold text-primary">{totalStudents}</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card hoverable className="border-l-4 border-l-primary">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-12 text-textSecondary mb-1">Tổng số học sinh</div>
+              <div className="text-28 font-bold text-textPrimary">{totalStudents}</div>
+            </div>
+            <div className="p-3 bg-primary/10 rounded-lg">
+              <Users className="w-6 h-6 text-primary" />
+            </div>
+          </div>
         </Card>
-        <Card>
-          <div className="text-12 text-textSecondary mb-1">Tổng số giáo viên</div>
-          <div className="text-28 font-bold text-primary">{totalTeachers}</div>
+        <Card hoverable className="border-l-4 border-l-secondary-nav">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-12 text-textSecondary mb-1">Tổng số giáo viên</div>
+              <div className="text-28 font-bold text-textPrimary">{totalTeachers}</div>
+            </div>
+            <div className="p-3 bg-secondary-nav/10 rounded-lg">
+              <GraduationCap className="w-6 h-6 text-secondary-nav" />
+            </div>
+          </div>
         </Card>
-        <Card>
-          <div className="text-12 text-textSecondary mb-1">Điểm TB toàn trường</div>
-          <div className="text-28 font-bold text-primary">{avgScore}</div>
+        <Card hoverable className="border-l-4 border-l-warning">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-12 text-textSecondary mb-1">Điểm TB toàn trường</div>
+              <div className="text-28 font-bold text-textPrimary">{avgScore}</div>
+            </div>
+            <div className="p-3 bg-warning/10 rounded-lg">
+              <Target className="w-6 h-6 text-warning" />
+            </div>
+          </div>
         </Card>
-        <Card>
-          <div className="text-12 text-textSecondary mb-1">Hoàn thành</div>
-          <div className="text-28 font-bold text-success">{completionPercentage}%</div>
+        <Card hoverable className="border-l-4 border-l-success">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-12 text-textSecondary mb-1">Hoàn thành khảo sát</div>
+              <div className="text-28 font-bold text-success">{completionPercentage}%</div>
+            </div>
+            <div className="p-3 bg-success/10 rounded-lg">
+              <CheckCircle className="w-6 h-6 text-success" />
+            </div>
+          </div>
         </Card>
       </div>
 
       <Card>
-        <h2 className="text-20 font-bold text-textPrimary mb-4">Tiến độ khảo sát</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-20 font-bold text-textPrimary">Tiến độ khảo sát</h2>
+          <div className="flex items-center gap-2 text-14 text-textSecondary">
+            <TrendingUp className="w-4 h-4" />
+            <span>{submittedStudents} / {totalStudents} học sinh</span>
+          </div>
+        </div>
+        <ProgressBar
+          value={completionPercentage}
+          size="lg"
+          variant="success"
+          showLabel={false}
+          className="mb-3"
+        />
         <ProgressBar
           value={completionPercentage}
           label={`${submittedStudents} / ${totalStudents} học sinh đã nộp`}
+          size="sm"
+          variant="primary"
         />
       </Card>
     </div>
