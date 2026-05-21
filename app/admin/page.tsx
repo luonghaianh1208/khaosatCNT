@@ -17,7 +17,8 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     getDashboardStats()
-      .then(setStats)
+      .then((data) => { if (data) setStats(data); })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -25,7 +26,7 @@ export default function AdminDashboard() {
     return <div className="text-center py-10">Đang tải...</div>;
   }
 
-  const { totalStudents, submittedStudents, totalTeachers, avgScore } = stats;
+  const { totalStudents = 0, submittedStudents = 0, totalTeachers = 0, avgScore = 0 } = stats ?? {};
   const completionPercentage = totalStudents > 0
     ? Math.round((submittedStudents / totalStudents) * 100)
     : 0;

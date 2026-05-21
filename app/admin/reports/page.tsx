@@ -41,8 +41,16 @@ export default function ReportsPage() {
 
   const fetchData = async () => {
     setLoading(true);
-
-    const { responses, homeroomResponses, completions } = await getReportData();
+    let responses: any[] = [], homeroomResponses: any[] = [], completions: any[] = [];
+    try {
+      const data = await getReportData();
+      responses = data.responses;
+      homeroomResponses = data.homeroomResponses;
+      completions = data.completions;
+    } catch {
+      setLoading(false);
+      return;
+    }
 
     // Process teacher stats from survey_responses
     const teacherMap = new Map<string, TeacherStats>();
