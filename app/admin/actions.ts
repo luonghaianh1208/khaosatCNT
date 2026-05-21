@@ -1,11 +1,12 @@
 'use server';
 
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { createAdminClient } from '@/lib/supabase/server-action-client';
 
 // ─── Students ───────────────────────────────────────────────────────────────
 
 export async function getStudents(search: string, gradeFilter: string) {
-  let query = supabaseAdmin
+  const client = createAdminClient();
+  let query = client
     .from('users')
     .select('id, username, full_name, date_of_birth, gender, grade, class_name, is_active')
     .order('full_name', { ascending: true });
@@ -31,18 +32,22 @@ export async function createStudent(payload: {
   class_name: string;
   password: string;
 }) {
+  const client = createAdminClient();
   const email = `${payload.username}@khaosat.ngt.edu.vn`;
 
-  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+  const { data: authData, error: authError } = await client.auth.signUp({
     email,
     password: payload.password,
-    email_confirm: true,
-    user_metadata: { role: 'student' },
+    options: {
+      data: { role: 'student' },
+    },
   });
 
   if (authError) throw new Error(authError.message);
 
-  const { error: insertError } = await supabaseAdmin.from('users').insert({
+  const authUserId = authData.user?.id ?? null;
+
+  const { error: insertError } = await client.from('users').insert({
     username: payload.username,
     full_name: payload.full_name,
     date_of_birth: payload.date_of_birth || null,
@@ -50,7 +55,7 @@ export async function createStudent(payload: {
     grade: payload.grade,
     class_name: payload.class_name,
     is_active: true,
-    auth_user_id: authData.user.id,
+    auth_user_id: authUserId,
   });
 
   if (insertError) throw new Error(insertError.message);
@@ -67,20 +72,20 @@ export async function updateStudent(
     is_active: boolean;
   }
 ) {
-  const { error } = await supabaseAdmin
-    .from('users')
-    .update(payload)
-    .eq('id', id);
+  const client = createAdminClient();
+  const { error } = await client.from('users').update(payload).eq('id', id);
   if (error) throw new Error(error.message);
 }
 
 export async function deleteStudent(id: string) {
-  const { error } = await supabaseAdmin.from('users').delete().eq('id', id);
+  const client = createAdminClient();
+  const { error } = await client.from('users').delete().eq('id', id);
   if (error) throw new Error(error.message);
 }
 
 export async function toggleStudentActive(id: string, isActive: boolean) {
-  const { error } = await supabaseAdmin
+  const client = createAdminClient();
+  const { error } = await client
     .from('users')
     .update({ is_active: isActive })
     .eq('id', id);
@@ -90,7 +95,8 @@ export async function toggleStudentActive(id: string, isActive: boolean) {
 // ─── Teachers ────────────────────────────────────────────────────────────────
 
 export async function getTeachers(search: string, typeFilter: string) {
-  let query = supabaseAdmin
+  const client = createAdminClient();
+  let query = client
     .from('teachers')
     .select(`*, teacher_class_assignments (id, class_name)`)
     .order('full_name', { ascending: true });
@@ -109,7 +115,8 @@ export async function createTeacher(payload: {
   subject: string | null;
   subject_code: string | null;
 }) {
-  const { error } = await supabaseAdmin.from('teachers').insert(payload);
+  const client = createAdminClient();
+  const { error } = await client.from('teachers').insert(payload);
   if (error) throw new Error(error.message);
 }
 
@@ -122,20 +129,20 @@ export async function updateTeacher(
     subject_code: string | null;
   }
 ) {
-  const { error } = await supabaseAdmin.from('teachers').update(payload).eq('id', id);
+  const client = createAdminClient();
+  const { error } = await client.from('teachers').update(payload).eq('id', id);
   if (error) throw new Error(error.message);
 }
 
 export async function deleteTeacher(id: string) {
-  const { error } = await supabaseAdmin.from('teachers').delete().eq('id', id);
+  const client = createAdminClient();
+  const { error } = await client.from('teachers').delete().eq('id', id);
   if (error) throw new Error(error.message);
 }
 
-export async function addTeacherAssignment(
-  teacherId: string,
-  className: string
-) {
-  const { data: session } = await supabaseAdmin
+export async function addTeacherAssignment(teacherId: string, className: string) {
+  const client = createAdminClient();
+  const { data: session } = await client
     .from('survey_sessions')
     .select('id')
     .eq('is_active', true)
@@ -143,7 +150,7 @@ export async function addTeacherAssignment(
 
   if (!session) throw new Error('Không có đợt khảo sát đang hoạt động');
 
-  const { error } = await supabaseAdmin.from('teacher_class_assignments').insert({
+  const { error } = await client.from('teacher_class_assignments').insert({
     teacher_id: teacherId,
     survey_session_id: session.id,
     class_name: className,
@@ -152,7 +159,8 @@ export async function addTeacherAssignment(
 }
 
 export async function deleteTeacherAssignment(assignmentId: string) {
-  const { error } = await supabaseAdmin
+  const client = createAdminClient();
+  const { error } = await client
     .from('teacher_class_assignments')
     .delete()
     .eq('id', assignmentId);
@@ -162,7 +170,8 @@ export async function deleteTeacherAssignment(assignmentId: string) {
 // ─── Sessions ────────────────────────────────────────────────────────────────
 
 export async function getSessions() {
-  const { data, error } = await supabaseAdmin
+  const client = createAdminClient();
+  const { data, error } = await client
     .from('survey_sessions')
     .select('*')
     .order('created_at', { ascending: false });
@@ -177,7 +186,8 @@ export async function createSession(payload: {
   end_date: string;
   description: string | null;
 }) {
-  const { error } = await supabaseAdmin.from('survey_sessions').insert({
+  const client = createAdminClient();
+  const { error } = await client.from('survey_sessions').insert({
     ...payload,
     is_active: false,
   });
@@ -194,7 +204,8 @@ export async function updateSession(
     description: string | null;
   }
 ) {
-  const { error } = await supabaseAdmin
+  const client = createAdminClient();
+  const { error } = await client
     .from('survey_sessions')
     .update(payload)
     .eq('id', id);
@@ -202,7 +213,8 @@ export async function updateSession(
 }
 
 export async function deleteSession(id: string) {
-  const { error } = await supabaseAdmin
+  const client = createAdminClient();
+  const { error } = await client
     .from('survey_sessions')
     .delete()
     .eq('id', id);
@@ -210,8 +222,9 @@ export async function deleteSession(id: string) {
 }
 
 export async function setActiveSession(id: string) {
-  await supabaseAdmin.from('survey_sessions').update({ is_active: false }).neq('id', id);
-  const { error } = await supabaseAdmin
+  const client = createAdminClient();
+  await client.from('survey_sessions').update({ is_active: false }).neq('id', id);
+  const { error } = await client
     .from('survey_sessions')
     .update({ is_active: true })
     .eq('id', id);
@@ -219,7 +232,8 @@ export async function setActiveSession(id: string) {
 }
 
 export async function toggleSessionActive(id: string, isActive: boolean) {
-  const { error } = await supabaseAdmin
+  const client = createAdminClient();
+  const { error } = await client
     .from('survey_sessions')
     .update({ is_active: isActive })
     .eq('id', id);
@@ -229,15 +243,16 @@ export async function toggleSessionActive(id: string, isActive: boolean) {
 // ─── Dashboard ───────────────────────────────────────────────────────────────
 
 export async function getDashboardStats() {
-  const { data: session } = await supabaseAdmin
+  const client = createAdminClient();
+  const { data: session } = await client
     .from('survey_sessions')
     .select('id')
     .eq('is_active', true)
     .single();
 
   const [{ count: totalStudents }, { count: totalTeachers }] = await Promise.all([
-    supabaseAdmin.from('users').select('*', { count: 'exact', head: true }),
-    supabaseAdmin.from('teachers').select('*', { count: 'exact', head: true }),
+    client.from('users').select('*', { count: 'exact', head: true }),
+    client.from('teachers').select('*', { count: 'exact', head: true }),
   ]);
 
   let submittedStudents = 0;
@@ -245,12 +260,12 @@ export async function getDashboardStats() {
 
   if (session?.id) {
     const [{ count: submitted }, { data: responses }] = await Promise.all([
-      supabaseAdmin
+      client
         .from('survey_completion')
         .select('*', { count: 'exact', head: true })
         .eq('survey_session_id', session.id)
         .eq('is_submitted', true),
-      supabaseAdmin
+      client
         .from('survey_responses')
         .select('total_score')
         .eq('survey_session_id', session.id),
@@ -282,6 +297,7 @@ export async function importStudents(rows: {
   class_name: string;
   password: string;
 }[]) {
+  const client = createAdminClient();
   let successCount = 0;
   let errorCount = 0;
 
@@ -290,24 +306,25 @@ export async function importStudents(rows: {
     try {
       let authUserId: string | null = null;
 
-      const { data: createdUser, error: createError } =
-        await supabaseAdmin.auth.admin.createUser({
-          email,
-          password: row.password,
-          email_confirm: true,
-          user_metadata: { role: 'student' },
-        });
+      const { data: signUpData, error: signUpError } = await client.auth.signUp({
+        email,
+        password: row.password,
+        options: { data: { role: 'student' } },
+      });
 
-      if (createError) {
-        // User might already exist — try to find by email
-        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-        const existing = existingUsers?.users?.find((u) => u.email === email);
-        authUserId = existing?.id || null;
+      if (signUpError) {
+        // User might already exist — look up by username in users table
+        const { data: existing } = await client
+          .from('users')
+          .select('auth_user_id')
+          .eq('username', row.username)
+          .single();
+        authUserId = existing?.auth_user_id ?? null;
       } else {
-        authUserId = createdUser.user.id;
+        authUserId = signUpData.user?.id ?? null;
       }
 
-      await supabaseAdmin.from('users').upsert(
+      await client.from('users').upsert(
         {
           username: row.username,
           full_name: row.full_name,
@@ -335,16 +352,17 @@ export async function importTeachers(teacherMap: {
   subject_code: string;
   classes: string[];
 }[]) {
+  const client = createAdminClient();
   let successCount = 0;
 
-  const { data: activeSession } = await supabaseAdmin
+  const { data: activeSession } = await client
     .from('survey_sessions')
     .select('id')
     .eq('is_active', true)
     .single();
 
   for (const t of teacherMap) {
-    const { data: teacher, error: teacherError } = await supabaseAdmin
+    const { data: teacher, error: teacherError } = await client
       .from('teachers')
       .upsert(
         {
@@ -362,7 +380,7 @@ export async function importTeachers(teacherMap: {
 
     if (activeSession) {
       for (const className of t.classes) {
-        await supabaseAdmin.from('teacher_class_assignments').upsert(
+        await client.from('teacher_class_assignments').upsert(
           {
             teacher_id: teacher.id,
             survey_session_id: activeSession.id,
@@ -381,7 +399,8 @@ export async function importTeachers(teacherMap: {
 // ─── Reports ─────────────────────────────────────────────────────────────────
 
 export async function getReportData() {
-  const { data: session } = await supabaseAdmin
+  const client = createAdminClient();
+  const { data: session } = await client
     .from('survey_sessions')
     .select('id')
     .eq('is_active', true)
@@ -391,16 +410,16 @@ export async function getReportData() {
 
   const [{ data: responses }, { data: homeroomResponses }, { data: completions }] =
     await Promise.all([
-      supabaseAdmin
+      client
         .from('survey_responses')
         .select(`*, teachers(full_name, subject), teacher_class_assignments(class_name)`)
         .eq('survey_session_id', session.id)
         .not('teacher_id', 'is', null),
-      supabaseAdmin
+      client
         .from('homeroom_responses')
         .select(`*, teachers(full_name, subject), teacher_class_assignments(class_name)`)
         .eq('survey_session_id', session.id),
-      supabaseAdmin
+      client
         .from('survey_completion')
         .select(`*, users(full_name, class_name)`)
         .eq('survey_session_id', session.id)
