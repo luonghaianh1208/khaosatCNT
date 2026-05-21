@@ -12,13 +12,13 @@ interface TeacherRow {
   'Họ tên': string;
   'Loại GV': string;
   'Môn dạy': string;
-  'Mã môn': string;
   'Lớp': string;
 }
 
 interface ValidatedRow extends TeacherRow {
   isValid: boolean;
   errors: string[];
+  subject_code: string;
 }
 
 const VALID_TEACHER_TYPES = ['chuyen_chinh', 'chuyen_phu', 'bo_mon', 'chu_nhiem'];
@@ -30,7 +30,43 @@ const TEACHER_TYPE_LABELS: Record<string, string> = {
   chu_nhiem: 'GVCN',
 };
 
-function validateRow(row: TeacherRow, existingSubjectCodes: string[]): ValidatedRow {
+// Danh mục mã môn - hệ thống tự sinh mã từ tên môn
+const SUBJECT_CODES: Record<string, string> = {
+  'toán': 'toan',
+  'vật lý': 'ly',
+  'lý': 'ly',
+  'hóa học': 'hoa',
+  'hóa': 'hoa',
+  'sinh học': 'sinh',
+  'sinh': 'sinh',
+  'ngữ văn': 'van',
+  'văn': 'van',
+  'lịch sử': 'su',
+  'sử': 'su',
+  'địa lý': 'dia',
+  'địa': 'dia',
+  'tiếng anh': 'anh',
+  'anh': 'anh',
+  'tin học': 'tin',
+  'tin': 'tin',
+  'gdcd': 'gdcd',
+  'công dân': 'gdcd',
+  'quốc phòng': 'qp',
+  'thể dục': 'td',
+  'td': 'td',
+  'gdqp': 'gdqp',
+};
+
+function normalizeSubject(subject: string): string {
+  return subject.toLowerCase().trim();
+}
+
+function getSubjectCode(subject: string): string {
+  const normalized = normalizeSubject(subject);
+  return SUBJECT_CODES[normalized] || normalized.replace(/\s+/g, '_');
+}
+
+function validateRow(row: TeacherRow): ValidatedRow {
   const errors: string[] = [];
 
   if (!row['Họ tên'] || row['Họ tên'].trim() === '') {
@@ -43,10 +79,8 @@ function validateRow(row: TeacherRow, existingSubjectCodes: string[]): Validated
     errors.push(`Loại giáo viên phải là một trong: ${VALID_TEACHER_TYPES.join(', ')}`);
   }
 
-  if (row['Mã môn'] && row['Mã môn'].trim() !== '' && existingSubjectCodes.length > 0) {
-    if (!existingSubjectCodes.includes(row['Mã môn'].trim())) {
-      errors.push(`Mã môn "${row['Mã môn']}" không hợp lệ`);
-    }
+  if (!row['Môn dạy'] || row['Môn dạy'].trim() === '') {
+    errors.push('Môn dạy không được để trống');
   }
 
   if (!row['Lớp'] || row['Lớp'].trim() === '') {
@@ -58,8 +92,8 @@ function validateRow(row: TeacherRow, existingSubjectCodes: string[]): Validated
     'Họ tên': row['Họ tên']?.trim() || '',
     'Loại GV': row['Loại GV']?.trim() || '',
     'Môn dạy': row['Môn dạy']?.trim() || '',
-    'Mã môn': row['Mã môn']?.trim() || '',
     'Lớp': row['Lớp']?.trim() || '',
+    subject_code: getSubjectCode(row['Môn dạy'] || ''),
     isValid: errors.length === 0,
     errors,
   };
@@ -78,42 +112,60 @@ export default function ImportTeachersPage() {
   const errorCount = parsedData.filter((r) => !r.isValid).length;
 
   const downloadTemplate = () => {
-    const template = [
+    // Sheet 1: Giáo viên (không có cột Mã môn - hệ thống tự sinh)
+    const teachersData = [
       {
         'Họ tên': 'Nguyễn Văn A',
         'Loại GV': 'chuyen_chinh',
         'Môn dạy': 'Toán',
-        'Mã môn': 'toan',
         'Lớp': '10A1',
       },
       {
         'Họ tên': 'Nguyễn Văn A',
         'Loại GV': 'chuyen_chinh',
         'Môn dạy': 'Toán',
-        'Mã môn': 'toan',
         'Lớp': '10A2',
       },
       {
         'Họ tên': 'Trần Thị B',
         'Loại GV': 'bo_mon',
         'Môn dạy': 'Vật lý',
-        'Mã môn': 'ly',
         'Lớp': '11A1',
       },
     ];
 
-    const ws = XLSX.utils.json_to_sheet(template);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Giáo viên');
+    // Sheet 2: Danh mục môn (tham khảo)
+    const subjectsData = [
+      { 'Tên môn': 'Toán', 'Mã môn': 'toan' },
+      { 'Tên môn': 'Vật lý', 'Mã môn': 'ly' },
+      { 'Tên môn': 'Hóa học', 'Mã môn': 'hoa' },
+      { 'Tên môn': 'Sinh học', 'Mã môn': 'sinh' },
+      { 'Tên môn': 'Ngữ văn', 'Mã môn': 'van' },
+      { 'Tên môn': 'Lịch sử', 'Mã môn': 'su' },
+      { 'Tên môn': 'Địa lý', 'Mã môn': 'dia' },
+      { 'Tên môn': 'Tiếng Anh', 'Mã môn': 'anh' },
+      { 'Tên môn': 'Tin học', 'Mã môn': 'tin' },
+      { 'Tên môn': 'GDCD', 'Mã môn': 'gdcd' },
+      { 'Tên môn': 'Thể dục', 'Mã môn': 'td' },
+    ];
 
-    const colWidths = [
+    const ws1 = XLSX.utils.json_to_sheet(teachersData);
+    const ws2 = XLSX.utils.json_to_sheet(subjectsData);
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws1, 'Giáo viên');
+    XLSX.utils.book_append_sheet(wb, ws2, 'Danh mục môn');
+
+    ws1['!cols'] = [
       { wch: 25 },
       { wch: 15 },
       { wch: 15 },
-      { wch: 12 },
       { wch: 10 },
     ];
-    ws['!cols'] = colWidths;
+    ws2['!cols'] = [
+      { wch: 15 },
+      { wch: 12 },
+    ];
 
     XLSX.writeFile(wb, 'Mau_Import_Giao_Vien.xlsx');
   };
@@ -134,7 +186,7 @@ export default function ImportTeachersPage() {
 
       // For validation, we allow all subject codes since we don't have a subjects table
       const validated = jsonData.map((row) => {
-        return validateRow(row, []);
+        return validateRow(row);
       });
 
       setParsedData(validated);
@@ -173,7 +225,7 @@ export default function ImportTeachersPage() {
             full_name: teacherName,
             teacher_type: firstRow['Loại GV'],
             subject: firstRow['Môn dạy'] || null,
-            subject_code: firstRow['Mã môn'] || null,
+            subject_code: firstRow.subject_code || null,
           },
           { onConflict: 'full_name' }
         )
@@ -302,17 +354,16 @@ export default function ImportTeachersPage() {
             <div className="text-sm text-textSecondary">
               <p><strong>Họ tên:</strong> Họ và tên đầy đủ</p>
               <p><strong>Loại GV:</strong> Loại giáo viên (chuyen_chinh / chuyen_phu / bo_mon / chu_nhiem)</p>
-              <p><strong>Môn dạy:</strong> Môn dạy (VD: Toán, Vật lý) - tùy chọn</p>
-              <p><strong>Mã môn:</strong> Mã môn - tùy chọn</p>
+              <p><strong>Môn dạy:</strong> Tên môn dạy (VD: Toán, Vật lý) - hệ thống tự sinh mã môn</p>
               <p><strong>Lớp:</strong> Tên lớp (VD: 10A1)</p>
             </div>
           </div>
 
           <div className="mt-4 text-sm text-textSecondary">
             <p className="font-semibold text-warning">Lưu ý quan trọng:</p>
-            <p>• <strong>1 giáo viên dạy nhiều lớp:</strong> Tạo nhiều dòng cùng full_name, mỗi dòng ghi 1 lớp khác nhau.</p>
-            <p>  VD: GV Nguyễn Văn A dạy 10A1, 10A2, 10A3 → cần 3 dòng có cùng full_name.</p>
-            <p>• Nếu 1 dòng có nhiều lớp (cách liệt kê bằng dấu phẩy), hệ thống sẽ chỉ lấy lớp đầu tiên.</p>
+            <p>• <strong>Mã môn tự động:</strong> Hệ thống tự sinh mã môn từ "Môn dạy". Xem sheet "Danh mục môn" để biết mã tương ứng.</p>
+            <p>• <strong>1 giáo viên dạy nhiều lớp:</strong> Tạo nhiều dòng cùng Họ tên, mỗi dòng ghi 1 lớp khác nhau.</p>
+            <p>  VD: GV Nguyễn Văn A dạy 10A1, 10A2, 10A3 → cần 3 dòng có cùng Họ tên.</p>
           </div>
 
           <div className="mt-6 flex justify-end">
@@ -373,7 +424,7 @@ export default function ImportTeachersPage() {
                     <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Trạng thái</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Họ tên</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Loại</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Môn</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Môn dạy</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Mã môn</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Lớp</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Lỗi</th>
@@ -400,7 +451,7 @@ export default function ImportTeachersPage() {
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-sm">{row['Môn dạy'] || '-'}</td>
-                      <td className="py-3 px-4 text-sm">{row['Mã môn'] || '-'}</td>
+                      <td className="py-3 px-4 text-sm">{row.subject_code || '-'}</td>
                       <td className="py-3 px-4 text-sm">{row['Lớp']}</td>
                       <td className="py-3 px-4 text-sm text-crimson">
                         {row.errors.length > 0 ? row.errors.join('; ') : '-'}
