@@ -6,13 +6,12 @@ import { supabaseAdmin } from '@/lib/supabase/server';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
+import Modal from '@/components/ui/Modal';
+import Input from '@/components/ui/Input';
 
 interface TeacherAssignment {
   id: string;
   class_name: string;
-  survey_session?: {
-    name: string;
-  };
 }
 
 interface Teacher {
@@ -44,6 +43,20 @@ export default function TeachersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
+  const [newClassName, setNewClassName] = useState('');
+
+  const [formData, setFormData] = useState({
+    full_name: '',
+    teacher_type: 'bo_mon',
+    subject: '',
+    subject_code: '',
+  });
 
   const fetchTeachers = async () => {
     setLoading(true);
@@ -85,6 +98,104 @@ export default function TeachersPage() {
     fetchTeachers();
   };
 
+  const handleOpenModal = (teacher?: Teacher) => {
+    if (teacher) {
+      setEditingTeacher(teacher);
+      setFormData({
+        full_name: teacher.full_name,
+        teacher_type: teacher.teacher_type,
+        subject: teacher.subject || '',
+        subject_code: teacher.subject_code || '',
+      });
+    } else {
+      setEditingTeacher(null);
+      setFormData({
+        full_name: '',
+        teacher_type: 'bo_mon',
+        subject: '',
+        subject_code: '',
+      });
+    }
+    setShowModal(true);
+    setError('');
+  };
+
+  const handleSave = async () => {
+    if (!formData.full_name) {
+      setError('Vui lòng nhập tên giáo viên');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+
+    try {
+      const payload = {
+        full_name: formData.full_name,
+        teacher_type: formData.teacher_type,
+        subject: formData.subject || null,
+        subject_code: formData.subject_code || null,
+      };
+
+      if (editingTeacher) {
+        await supabaseAdmin
+          .from('teachers')
+          .update(payload)
+          .eq('id', editingTeacher.id);
+      } else {
+        await supabaseAdmin
+          .from('teachers')
+          .insert(payload);
+      }
+
+      setShowModal(false);
+      fetchTeachers();
+    } catch (e) {
+      setError('Đã xảy ra lỗi khi lưu');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddAssignment = async () => {
+    if (!selectedTeacher || !newClassName) return;
+
+    // Get active session
+    const { data: session } = await supabaseAdmin
+      .from('survey_sessions')
+      .select('id')
+      .eq('is_active', true)
+      .single();
+
+    if (!session) {
+      alert('Không có đợt khảo sát đang hoạt động');
+      return;
+    }
+
+    await supabaseAdmin
+      .from('teacher_class_assignments')
+      .insert({
+        teacher_id: selectedTeacher.id,
+        survey_session_id: session.id,
+        class_name: newClassName,
+      });
+
+    setShowAssignmentModal(false);
+    setNewClassName('');
+    setSelectedTeacher(null);
+    fetchTeachers();
+  };
+
+  const handleDeleteAssignment = async (assignmentId: string) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa phân công này?')) return;
+
+    await supabaseAdmin
+      .from('teacher_class_assignments')
+      .delete()
+      .eq('id', assignmentId);
+    fetchTeachers();
+  };
+
   const getClassesDisplay = (assignments?: TeacherAssignment[]) => {
     if (!assignments || assignments.length === 0) return '-';
     return assignments.map(a => a.class_name).join(', ');
@@ -102,7 +213,7 @@ export default function TeachersPage() {
           >
             Import
           </Button>
-          <Button variant="primary" className="w-auto">
+          <Button variant="primary" className="w-auto" onClick={() => handleOpenModal()}>
             + Thêm mới
           </Button>
         </div>
@@ -171,6 +282,17 @@ export default function TeachersPage() {
                         <Button
                           variant="secondary"
                           className="w-auto px-3 py-1 text-sm"
+                          onClick={() => {
+                            setSelectedTeacher(teacher);
+                            setShowAssignmentModal(true);
+                          }}
+                        >
+                          + Lớp
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          className="w-auto px-3 py-1 text-sm"
+                          onClick={() => handleOpenModal(teacher)}
                         >
                           Sửa
                         </Button>
@@ -190,6 +312,108 @@ export default function TeachersPage() {
           </div>
         )}
       </Card>
+
+      {/* Add/Edit Teacher Modal */}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingTeacher ? 'Sửa giáo viên' : 'Thêm giáo viên mới'}
+      >
+        <div className="space-y-4">
+          {error && (
+            <div className="bg-crimson/10 border border-crimson text-crimson px-4 py-2 rounded text-sm">
+              {error}
+            </div>
+          )}
+
+          <Input
+            label="Họ tên"
+            value={formData.full_name}
+            onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+            placeholder="Nguyễn Văn A"
+            required
+            disabled={saving}
+          />
+
+          <div>
+            <label className="block text-sm font-medium text-textPrimary mb-1">Loại giáo viên</label>
+            <select
+              className="w-full px-3 py-2 text-sm font-sans border border-border rounded-button bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              value={formData.teacher_type}
+              onChange={(e) => setFormData({ ...formData, teacher_type: e.target.value })}
+              disabled={saving}
+            >
+              <option value="chuyen_chinh">GV chuyên chính</option>
+              <option value="chuyen_phu">GV chuyên phụ</option>
+              <option value="bo_mon">GV bộ môn</option>
+              <option value="chu_nhiem">GVCN</option>
+            </select>
+          </div>
+
+          <Input
+            label="Môn dạy"
+            value={formData.subject}
+            onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+            placeholder="Toán, Vật lý,..."
+            disabled={saving}
+          />
+
+          <Input
+            label="Mã môn"
+            value={formData.subject_code}
+            onChange={(e) => setFormData({ ...formData, subject_code: e.target.value })}
+            placeholder="toan, ly, hoa,..."
+            disabled={saving}
+          />
+
+          <div className="flex justify-end gap-2 pt-4 border-t border-border">
+            <Button variant="secondary" onClick={() => setShowModal(false)} disabled={saving}>
+              Hủy
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? 'Đang lưu...' : 'Lưu'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Add Class Assignment Modal */}
+      <Modal
+        isOpen={showAssignmentModal}
+        onClose={() => {
+          setShowAssignmentModal(false);
+          setSelectedTeacher(null);
+          setNewClassName('');
+        }}
+        title="Phân công lớp giảng dạy"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-textSecondary">
+            Đang phân công cho: <strong>{selectedTeacher?.full_name}</strong>
+          </p>
+
+          <Input
+            label="Tên lớp"
+            value={newClassName}
+            onChange={(e) => setNewClassName(e.target.value)}
+            placeholder="10 Toán, 10 Lý,..."
+            required
+          />
+
+          <div className="flex justify-end gap-2 pt-4 border-t border-border">
+            <Button variant="secondary" onClick={() => {
+              setShowAssignmentModal(false);
+              setSelectedTeacher(null);
+              setNewClassName('');
+            }}>
+              Hủy
+            </Button>
+            <Button onClick={handleAddAssignment}>
+              Thêm
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
