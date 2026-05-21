@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { getReportData } from '@/app/admin/actions';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 
@@ -42,48 +42,7 @@ export default function ReportsPage() {
   const fetchData = async () => {
     setLoading(true);
 
-    // Get active session
-    const { data: session } = await supabaseAdmin
-      .from('survey_sessions')
-      .select('id')
-      .eq('is_active', true)
-      .single();
-
-    if (!session) {
-      setLoading(false);
-      return;
-    }
-
-    // Fetch survey responses with teacher and class info
-    const { data: responses } = await supabaseAdmin
-      .from('survey_responses')
-      .select(`
-        *,
-        teachers(full_name, subject),
-        teacher_class_assignments(class_name)
-      `)
-      .eq('survey_session_id', session.id)
-      .not('teacher_id', 'is', null);
-
-    // Fetch homeroom responses
-    const { data: homeroomResponses } = await supabaseAdmin
-      .from('homeroom_responses')
-      .select(`
-        *,
-        teachers(full_name, subject),
-        teacher_class_assignments(class_name)
-      `)
-      .eq('survey_session_id', session.id);
-
-    // Fetch students who submitted
-    const { data: completions } = await supabaseAdmin
-      .from('survey_completion')
-      .select(`
-        *,
-        users(full_name, class_name)
-      `)
-      .eq('survey_session_id', session.id)
-      .eq('is_submitted', true);
+    const { responses, homeroomResponses, completions } = await getReportData();
 
     // Process teacher stats from survey_responses
     const teacherMap = new Map<string, TeacherStats>();
@@ -279,28 +238,29 @@ export default function ReportsPage() {
           <div className="text-center py-8 text-textSecondary">Đang tải...</div>
         ) : teacherStats.length === 0 ? (
           <div className="text-center py-8 text-textSecondary">
-            Chưa có dữ liệu khảo sát. Vui lòng kiểm tra đợt khảo sát đang hoạt động.
+            <div className="mb-2">Chưa có dữ liệu khảo sát</div>
+            <p className="text-sm">Vui lòng kiểm tra đợt khảo sát đang hoạt động</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border bg-bgLight">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Giáo viên</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Môn</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Lớp</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-textSecondary">TB Câu 1</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-textSecondary">TB Câu 2</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-textSecondary">TB Câu 3</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-textSecondary">TB Câu 4</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-textSecondary">TB Câu 5</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-textPrimary font-bold">TB Chung</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-textSecondary">Số HS</th>
+                <tr className="border-b border-border bg-bg-light">
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Giáo viên</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Môn</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Lớp</th>
+                  <th className="text-right py-4 px-4 text-sm font-semibold text-textSecondary">TB Câu 1</th>
+                  <th className="text-right py-4 px-4 text-sm font-semibold text-textSecondary">TB Câu 2</th>
+                  <th className="text-right py-4 px-4 text-sm font-semibold text-textSecondary">TB Câu 3</th>
+                  <th className="text-right py-4 px-4 text-sm font-semibold text-textSecondary">TB Câu 4</th>
+                  <th className="text-right py-4 px-4 text-sm font-semibold text-textSecondary">TB Câu 5</th>
+                  <th className="text-right py-4 px-4 text-sm font-semibold text-textPrimary font-bold">TB Chung</th>
+                  <th className="text-right py-4 px-4 text-sm font-semibold text-textSecondary">Số HS</th>
                 </tr>
               </thead>
               <tbody>
                 {teacherStats.map((teacher, index) => (
-                  <tr key={`${teacher.teacher_id}-${teacher.class_name}`} className="border-b border-border hover:bg-bgLight">
+                  <tr key={`${teacher.teacher_id}-${teacher.class_name}`} className="border-t border-border hover:bg-bg-light/50 transition-colors animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                     <td className="py-3 px-4">{teacher.teacher_name}</td>
                     <td className="py-3 px-4">{teacher.subject}</td>
                     <td className="py-3 px-4">{teacher.class_name}</td>

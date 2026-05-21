@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { getStudents, createStudent, updateStudent, deleteStudent, toggleStudentActive } from '@/app/admin/actions';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
@@ -72,22 +72,14 @@ export default function StudentsPage() {
 
   const fetchStudents = async () => {
     setLoading(true);
-    let query = supabaseAdmin
-      .from('users')
-      .select('id, username, full_name, date_of_birth, gender, grade, class_name, is_active')
-      .order('full_name', { ascending: true });
-
-    if (search) {
-      query = query.or(`full_name.ilike.%${search}%,username.ilike.%${search}%`);
+    try {
+      const data = await getStudents(search, gradeFilter);
+      setStudents(data);
+    } catch {
+      setStudents([]);
+    } finally {
+      setLoading(false);
     }
-
-    if (gradeFilter) {
-      query = query.eq('grade', gradeFilter);
-    }
-
-    const { data } = await query;
-    setStudents(data || []);
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -96,11 +88,7 @@ export default function StudentsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Bạn có chắc chắn muốn xóa học sinh này?')) return;
-
-    await supabaseAdmin
-      .from('users')
-      .delete()
-      .eq('id', id);
+    await deleteStudent(id);
     fetchStudents();
   };
 
@@ -136,32 +124,23 @@ export default function StudentsPage() {
     setAddError('');
 
     try {
-      let dob = editForm.date_of_birth;
+      let dob = editForm.date_of_birth || null;
       if (editForm.date_of_birth) {
         const parts = editForm.date_of_birth.split('/');
         if (parts.length === 3) {
           const date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
           dob = date.toISOString().split('T')[0];
-        } else {
-          dob = editForm.date_of_birth;
         }
       }
 
-      const { error: updateError } = await supabaseAdmin
-        .from('users')
-        .update({
-          full_name: editForm.full_name,
-          date_of_birth: dob || null,
-          gender: editForm.gender,
-          grade: editForm.grade,
-          class_name: editForm.class_name,
-          is_active: editForm.is_active,
-        })
-        .eq('id', editingStudent.id);
-
-      if (updateError) {
-        throw new Error(updateError.message);
-      }
+      await updateStudent(editingStudent.id, {
+        full_name: editForm.full_name,
+        date_of_birth: dob,
+        gender: editForm.gender,
+        grade: editForm.grade,
+        class_name: editForm.class_name,
+        is_active: editForm.is_active,
+      });
 
       setShowEditModal(false);
       setEditingStudent(null);
@@ -174,10 +153,7 @@ export default function StudentsPage() {
   };
 
   const handleToggleActive = async (student: Student) => {
-    await supabaseAdmin
-      .from('users')
-      .update({ is_active: !student.is_active })
-      .eq('id', student.id);
+    await toggleStudentActive(student.id, !student.is_active);
     fetchStudents();
   };
 
@@ -186,34 +162,6 @@ export default function StudentsPage() {
     setAdding(true);
 
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      const email = `${newStudent.username}@khaosat.ngt.edu.vn`;
-
-      // Create auth user
-      const authResponse = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${serviceRoleKey}`,
-          'apikey': serviceRoleKey || '',
-        },
-        body: JSON.stringify({
-          email,
-          password: newStudent.password,
-          email_confirm: true,
-          user_metadata: { role: 'student' },
-        }),
-      });
-
-      if (!authResponse.ok) {
-        const errorData = await authResponse.json();
-        throw new Error(errorData.msg || 'Không thể tạo tài khoản');
-      }
-
-      const authData = await authResponse.json();
-      const authUserId = authData.id;
-
       // Parse date
       const parts = newStudent.date_of_birth.split('/');
       let dob = newStudent.date_of_birth;
@@ -222,21 +170,7 @@ export default function StudentsPage() {
         dob = date.toISOString().split('T')[0];
       }
 
-      // Insert user profile
-      const { error: insertError } = await supabaseAdmin.from('users').insert({
-        username: newStudent.username,
-        full_name: newStudent.full_name,
-        date_of_birth: dob,
-        gender: newStudent.gender,
-        grade: newStudent.grade,
-        class_name: newStudent.class_name,
-        is_active: true,
-        auth_user_id: authUserId,
-      });
-
-      if (insertError) {
-        throw new Error(insertError.message);
-      }
+      await createStudent({ ...newStudent, date_of_birth: dob });
 
       setShowAddModal(false);
       setNewStudent({
@@ -301,22 +235,25 @@ export default function StudentsPage() {
         {loading ? (
           <div className="text-center py-8 text-textSecondary">Đang tải...</div>
         ) : students.length === 0 ? (
-          <div className="text-center py-8 text-textSecondary">Chưa có học sinh nào</div>
+          <div className="text-center py-8 text-textSecondary">
+            <div className="mb-2">Chưa có học sinh nào</div>
+            <p className="text-sm">Nhấn "+ Thêm mới" hoặc "Import" để bắt đầu</p>
+          </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Username</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Họ tên</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Lớp</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Trạng thái</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Thao tác</th>
+                <tr className="border-b border-border bg-bg-light">
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Username</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Họ tên</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Lớp</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Trạng thái</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                {students.map((student) => (
-                  <tr key={student.id} className="border-b border-border hover:bg-bgLight">
+                {students.map((student, index) => (
+                  <tr key={student.id} className="border-t border-border hover:bg-bg-light/50 transition-colors animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                     <td className="py-3 px-4">{student.username}</td>
                     <td className="py-3 px-4">{student.full_name}</td>
                     <td className="py-3 px-4">
@@ -332,13 +269,15 @@ export default function StudentsPage() {
                         <Button
                           variant="secondary"
                           className="w-auto px-3 py-1 text-sm"
+                          size="sm"
                           onClick={() => handleOpenEditModal(student)}
                         >
                           Sửa
                         </Button>
                         <Button
-                          variant="danger"
-                          className="w-auto px-3 py-1 text-sm"
+                          variant="ghost"
+                          className="w-auto px-3 py-1 text-sm text-crimson hover:bg-crimson/10"
+                          size="sm"
                           onClick={() => handleDelete(student.id)}
                         >
                           Xóa

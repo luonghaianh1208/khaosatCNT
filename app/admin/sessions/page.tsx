@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { getSessions, createSession, updateSession, deleteSession, toggleSessionActive } from '@/app/admin/actions';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -37,12 +37,14 @@ export default function SessionsPage() {
 
   const fetchSessions = async () => {
     setLoading(true);
-    const { data } = await supabaseAdmin
-      .from('survey_sessions')
-      .select('*')
-      .order('created_at', { ascending: false });
-    setSessions(data || []);
-    setLoading(false);
+    try {
+      const data = await getSessions();
+      setSessions(data);
+    } catch {
+      setSessions([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -50,10 +52,7 @@ export default function SessionsPage() {
   }, []);
 
   const toggleActive = async (id: string, currentStatus: boolean) => {
-    await supabaseAdmin
-      .from('survey_sessions')
-      .update({ is_active: !currentStatus })
-      .eq('id', id);
+    await toggleSessionActive(id, !currentStatus);
     fetchSessions();
   };
 
@@ -100,14 +99,9 @@ export default function SessionsPage() {
       };
 
       if (editingSession) {
-        await supabaseAdmin
-          .from('survey_sessions')
-          .update(payload)
-          .eq('id', editingSession.id);
+        await updateSession(editingSession.id, payload);
       } else {
-        await supabaseAdmin
-          .from('survey_sessions')
-          .insert(payload);
+        await createSession(payload);
       }
 
       setShowModal(false);
@@ -121,11 +115,7 @@ export default function SessionsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Bạn có chắc chắn muốn xóa đợt khảo sát này?')) return;
-
-    await supabaseAdmin
-      .from('survey_sessions')
-      .delete()
-      .eq('id', id);
+    await deleteSession(id);
     fetchSessions();
   };
 
@@ -147,22 +137,25 @@ export default function SessionsPage() {
         {loading ? (
           <div className="text-center py-8 text-textSecondary">Đang tải...</div>
         ) : sessions.length === 0 ? (
-          <div className="text-center py-8 text-textSecondary">Chưa có đợt khảo sát nào</div>
+          <div className="text-center py-8 text-textSecondary">
+            <div className="mb-2">Chưa có đợt khảo sát nào</div>
+            <p className="text-sm">Nhấn "+ Tạo mới" để bắt đầu</p>
+          </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Tên đợt khảo sát</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Năm học</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Thời hạn</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Trạng thái</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Thao tác</th>
+                <tr className="border-b border-border bg-bg-light">
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Tên đợt khảo sát</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Năm học</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Thời hạn</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Trạng thái</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                {sessions.map((session) => (
-                  <tr key={session.id} className="border-b border-border hover:bg-bgLight">
+                {sessions.map((session, index) => (
+                  <tr key={session.id} className="border-t border-border hover:bg-bg-light/50 transition-colors animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                     <td className="py-3 px-4">
                       <div className="font-medium">{session.name}</div>
                       {session.description && (
@@ -183,6 +176,7 @@ export default function SessionsPage() {
                         <Button
                           variant={session.is_active ? 'secondary' : 'primary'}
                           className="w-auto px-3 py-1 text-sm"
+                          size="sm"
                           onClick={() => toggleActive(session.id, session.is_active)}
                         >
                           {session.is_active ? 'Tắt' : 'Bật'}
@@ -190,13 +184,15 @@ export default function SessionsPage() {
                         <Button
                           variant="secondary"
                           className="w-auto px-3 py-1 text-sm"
+                          size="sm"
                           onClick={() => handleOpenModal(session)}
                         >
                           Sửa
                         </Button>
                         <Button
-                          variant="danger"
-                          className="w-auto px-3 py-1 text-sm"
+                          variant="ghost"
+                          className="w-auto px-3 py-1 text-sm text-crimson hover:bg-crimson/10"
+                          size="sm"
                           onClick={() => handleDelete(session.id)}
                         >
                           Xóa

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { importStudents } from '@/app/admin/actions';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
@@ -164,80 +164,19 @@ export default function ImportStudentsPage() {
 
   const handleImport = async () => {
     setImporting(true);
-    let successCount = 0;
-    let errorCount = 0;
 
-    const validRows = parsedData.filter((r) => r.isValid);
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const validRows = parsedData.filter((r) => r.isValid).map((row) => ({
+      username: row['Tên đăng nhập'],
+      full_name: row['Họ tên'],
+      date_of_birth: parseDate(row['Ngày sinh']),
+      gender: row['Giới tính'],
+      grade: row['Khối'],
+      class_name: row['Lớp'],
+      password: row.processedPassword,
+    }));
 
-    for (const row of validRows) {
-      const dob = parseDate(row['Ngày sinh']);
-      const email = `${row['Tên đăng nhập']}@khaosat.ngt.edu.vn`;
-
-      try {
-        // Create auth user via Supabase Admin API
-        const authResponse = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${serviceRoleKey}`,
-            'apikey': serviceRoleKey || '',
-          },
-          body: JSON.stringify({
-            email,
-            password: row.processedPassword,
-            email_confirm: true,
-            user_metadata: { role: 'student' },
-          }),
-        });
-
-        let authUserId = null;
-        if (authResponse.ok) {
-          const authData = await authResponse.json();
-          authUserId = authData.id;
-        } else {
-          // User might already exist, try to get their id
-          const listResponse = await fetch(
-            `${supabaseUrl}/auth/v1/admin/users?filter=email.eq.${encodeURIComponent(email)}`,
-            {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${serviceRoleKey}`,
-                'apikey': serviceRoleKey || '',
-              },
-            }
-          );
-          if (listResponse.ok) {
-            const listData = await listResponse.json();
-            if (listData.users && listData.users.length > 0) {
-              authUserId = listData.users[0].id;
-            }
-          }
-        }
-
-        // Upsert user profile
-        await supabaseAdmin.from('users').upsert(
-          {
-            username: row['Tên đăng nhập'],
-            full_name: row['Họ tên'],
-            date_of_birth: dob,
-            gender: row['Giới tính'],
-            grade: row['Khối'],
-            class_name: row['Lớp'],
-            auth_user_id: authUserId,
-          },
-          { onConflict: 'username' }
-        );
-
-        successCount++;
-      } catch (error) {
-        console.error('Error importing student:', row['Tên đăng nhập'], error);
-        errorCount++;
-      }
-    }
-
-    setImportResult({ success: successCount, errors: errorCount });
+    const result = await importStudents(validRows);
+    setImportResult(result);
     setImporting(false);
   };
 

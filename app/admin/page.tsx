@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { getDashboardStats } from '@/app/admin/actions';
 import Card from '@/components/ui/Card';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { Users, GraduationCap, Target, CheckCircle, TrendingUp } from 'lucide-react';
@@ -16,52 +16,9 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
-      const { data: session } = await supabaseAdmin
-        .from('survey_sessions')
-        .select('id')
-        .eq('is_active', true)
-        .single();
-
-      const { count: totalStudents } = await supabaseAdmin
-        .from('users')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: submittedStudents } = session?.id
-        ? await supabaseAdmin
-            .from('survey_completion')
-            .select('*', { count: 'exact', head: true })
-            .eq('survey_session_id', session.id)
-            .eq('is_submitted', true)
-        : { count: 0 };
-
-      const { count: totalTeachers } = await supabaseAdmin
-        .from('teachers')
-        .select('*', { count: 'exact', head: true });
-
-      let avgScore = 0;
-      if (session?.id) {
-        const { data: responses } = await supabaseAdmin
-          .from('survey_responses')
-          .select('total_score')
-          .eq('survey_session_id', session.id);
-
-        if (responses && responses.length > 0) {
-          const total = responses.reduce((sum, r) => sum + (r.total_score || 0), 0);
-          avgScore = Math.round((total / responses.length) * 100) / 100;
-        }
-      }
-
-      setStats({
-        totalStudents: totalStudents || 0,
-        submittedStudents: submittedStudents || 0,
-        totalTeachers: totalTeachers || 0,
-        avgScore,
-      });
-      setLoading(false);
-    };
-
-    fetchStats();
+    getDashboardStats()
+      .then(setStats)
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) {

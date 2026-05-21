@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { getTeachers, createTeacher, updateTeacher, deleteTeacher, addTeacherAssignment, deleteTeacherAssignment } from '@/app/admin/actions';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
@@ -60,28 +60,14 @@ export default function TeachersPage() {
 
   const fetchTeachers = async () => {
     setLoading(true);
-    let query = supabaseAdmin
-      .from('teachers')
-      .select(`
-        *,
-        teacher_class_assignments (
-          id,
-          class_name
-        )
-      `)
-      .order('full_name', { ascending: true });
-
-    if (search) {
-      query = query.ilike('full_name', `%${search}%`);
+    try {
+      const data = await getTeachers(search, typeFilter);
+      setTeachers(data);
+    } catch {
+      setTeachers([]);
+    } finally {
+      setLoading(false);
     }
-
-    if (typeFilter) {
-      query = query.eq('teacher_type', typeFilter);
-    }
-
-    const { data } = await query;
-    setTeachers(data || []);
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -90,11 +76,7 @@ export default function TeachersPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Bạn có chắc chắn muốn xóa giáo viên này?')) return;
-
-    await supabaseAdmin
-      .from('teachers')
-      .delete()
-      .eq('id', id);
+    await deleteTeacher(id);
     fetchTeachers();
   };
 
@@ -138,14 +120,9 @@ export default function TeachersPage() {
       };
 
       if (editingTeacher) {
-        await supabaseAdmin
-          .from('teachers')
-          .update(payload)
-          .eq('id', editingTeacher.id);
+        await updateTeacher(editingTeacher.id, payload);
       } else {
-        await supabaseAdmin
-          .from('teachers')
-          .insert(payload);
+        await createTeacher(payload);
       }
 
       setShowModal(false);
@@ -160,25 +137,12 @@ export default function TeachersPage() {
   const handleAddAssignment = async () => {
     if (!selectedTeacher || !newClassName) return;
 
-    // Get active session
-    const { data: session } = await supabaseAdmin
-      .from('survey_sessions')
-      .select('id')
-      .eq('is_active', true)
-      .single();
-
-    if (!session) {
-      alert('Không có đợt khảo sát đang hoạt động');
+    try {
+      await addTeacherAssignment(selectedTeacher.id, newClassName);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Đã xảy ra lỗi');
       return;
     }
-
-    await supabaseAdmin
-      .from('teacher_class_assignments')
-      .insert({
-        teacher_id: selectedTeacher.id,
-        survey_session_id: session.id,
-        class_name: newClassName,
-      });
 
     setShowAssignmentModal(false);
     setNewClassName('');
@@ -188,11 +152,7 @@ export default function TeachersPage() {
 
   const handleDeleteAssignment = async (assignmentId: string) => {
     if (!confirm('Bạn có chắc chắn muốn xóa phân công này?')) return;
-
-    await supabaseAdmin
-      .from('teacher_class_assignments')
-      .delete()
-      .eq('id', assignmentId);
+    await deleteTeacherAssignment(assignmentId);
     fetchTeachers();
   };
 
@@ -248,22 +208,25 @@ export default function TeachersPage() {
         {loading ? (
           <div className="text-center py-8 text-textSecondary">Đang tải...</div>
         ) : teachers.length === 0 ? (
-          <div className="text-center py-8 text-textSecondary">Chưa có giáo viên nào</div>
+          <div className="text-center py-8 text-textSecondary">
+            <div className="mb-2">Chưa có giáo viên nào</div>
+            <p className="text-sm">Nhấn "+ Thêm mới" hoặc "Import" để bắt đầu</p>
+          </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Họ tên</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Loại</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Môn</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Lớp</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Thao tác</th>
+                <tr className="border-b border-border bg-bg-light">
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Họ tên</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Loại</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Môn</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Lớp</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                {teachers.map((teacher) => (
-                  <tr key={teacher.id} className="border-b border-border hover:bg-bgLight">
+                {teachers.map((teacher, index) => (
+                  <tr key={teacher.id} className="border-t border-border hover:bg-bg-light/50 transition-colors animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                     <td className="py-3 px-4">{teacher.full_name}</td>
                     <td className="py-3 px-4">
                       <Badge variant={TEACHER_TYPE_VARIANTS[teacher.teacher_type] || 'secondary'}>
@@ -282,6 +245,7 @@ export default function TeachersPage() {
                         <Button
                           variant="secondary"
                           className="w-auto px-3 py-1 text-sm"
+                          size="sm"
                           onClick={() => {
                             setSelectedTeacher(teacher);
                             setShowAssignmentModal(true);
@@ -292,13 +256,15 @@ export default function TeachersPage() {
                         <Button
                           variant="secondary"
                           className="w-auto px-3 py-1 text-sm"
+                          size="sm"
                           onClick={() => handleOpenModal(teacher)}
                         >
                           Sửa
                         </Button>
                         <Button
-                          variant="danger"
-                          className="w-auto px-3 py-1 text-sm"
+                          variant="ghost"
+                          className="w-auto px-3 py-1 text-sm text-crimson hover:bg-crimson/10"
+                          size="sm"
                           onClick={() => handleDelete(teacher.id)}
                         >
                           Xóa

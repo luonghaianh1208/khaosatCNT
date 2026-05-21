@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { importTeachers } from '@/app/admin/actions';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
@@ -197,72 +197,27 @@ export default function ImportTeachersPage() {
 
   const handleImport = async () => {
     setImporting(true);
-    let successCount = 0;
 
     const validRows = parsedData.filter((r) => r.isValid);
 
     // Group rows by teacher name to handle multi-class assignments
-    const teacherMap = new Map<string, ValidatedRow[]>();
+    const teacherGroupMap = new Map<string, ValidatedRow[]>();
     for (const row of validRows) {
       const key = row['Họ tên'];
-      if (!teacherMap.has(key)) {
-        teacherMap.set(key, []);
-      }
-      teacherMap.get(key)!.push(row);
+      if (!teacherGroupMap.has(key)) teacherGroupMap.set(key, []);
+      teacherGroupMap.get(key)!.push(row);
     }
 
-    // Upsert each teacher and create class assignments
-    for (const [teacherName, rows] of teacherMap) {
-      // Get unique classes for this teacher
-      const classes = [...new Set(rows.map(r => r['Lớp']))];
-      const firstRow = rows[0];
+    const payload = Array.from(teacherGroupMap.entries()).map(([teacherName, rows]) => ({
+      full_name: teacherName,
+      teacher_type: rows[0]['Loại GV'],
+      subject: rows[0]['Môn dạy'] || '',
+      subject_code: rows[0].subject_code || '',
+      classes: [...new Set(rows.map(r => r['Lớp']))],
+    }));
 
-      // Upsert teacher
-      const { data: teacher, error: teacherError } = await supabaseAdmin
-        .from('teachers')
-        .upsert(
-          {
-            full_name: teacherName,
-            teacher_type: firstRow['Loại GV'],
-            subject: firstRow['Môn dạy'] || null,
-            subject_code: firstRow.subject_code || null,
-          },
-          { onConflict: 'full_name' }
-        )
-        .select()
-        .single();
-
-      if (teacherError || !teacher) {
-        continue;
-      }
-
-      // Get active survey session for assignments
-      const { data: activeSession } = await supabaseAdmin
-        .from('survey_sessions')
-        .select('id')
-        .eq('is_active', true)
-        .single();
-
-      if (activeSession) {
-        // Create teacher_class_assignments for each class
-        for (const className of classes) {
-          await supabaseAdmin
-            .from('teacher_class_assignments')
-            .upsert(
-              {
-                teacher_id: teacher.id,
-                survey_session_id: activeSession.id,
-                class_name: className,
-              },
-              { onConflict: 'teacher_id,survey_session_id,class_name' }
-            );
-        }
-      }
-
-      successCount++;
-    }
-
-    setImportResult({ success: successCount, errors: errorCount });
+    const result = await importTeachers(payload);
+    setImportResult({ success: result.success, errors: validRows.length - result.success });
     setImporting(false);
   };
 
