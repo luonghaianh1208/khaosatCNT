@@ -221,9 +221,16 @@ export default function TeachersPage() {
           <Button
             variant="secondary"
             className="w-auto"
+            onClick={() => router.push('/admin/teachers/import-homeroom')}
+          >
+            Import GVCN
+          </Button>
+          <Button
+            variant="secondary"
+            className="w-auto"
             onClick={() => router.push('/admin/teachers/import')}
           >
-            Import
+            Import GV bộ môn
           </Button>
           <Button variant="primary" className="w-auto" onClick={() => handleOpenModal()}>
             + Thêm mới
@@ -390,7 +397,6 @@ export default function TeachersPage() {
               <option value="chuyen_chinh">GV chuyên chính</option>
               <option value="chuyen_phu">GV chuyên phụ</option>
               <option value="bo_mon">GV bộ môn</option>
-              <option value="chu_nhiem">GVCN</option>
             </select>
           </div>
 

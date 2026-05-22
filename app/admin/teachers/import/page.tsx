@@ -21,13 +21,12 @@ interface ValidatedRow extends TeacherRow {
   subject_code: string;
 }
 
-const VALID_TEACHER_TYPES = ['chuyen_chinh', 'chuyen_phu', 'bo_mon', 'chu_nhiem'];
+const VALID_TEACHER_TYPES = ['chuyen_chinh', 'chuyen_phu', 'bo_mon'];
 
 const TEACHER_TYPE_LABELS: Record<string, string> = {
   chuyen_chinh: 'GV chuyên chính',
   chuyen_phu: 'GV chuyên phụ',
   bo_mon: 'GV bộ môn',
-  chu_nhiem: 'GVCN',
 };
 
 function getSubjectCode(subject: string): string {
@@ -94,7 +93,6 @@ export default function ImportTeachersPage() {
       { 'Họ tên': 'Nguyễn Văn A', 'Loại GV': 'chuyen_chinh', 'Môn dạy': 'Toán', 'Lớp': '10A2' },
       { 'Họ tên': 'Trần Thị B', 'Loại GV': 'bo_mon', 'Môn dạy': 'Vật lý', 'Lớp': '11A1' },
       { 'Họ tên': 'Lê Văn C', 'Loại GV': 'bo_mon', 'Môn dạy': 'Công nghệ thông tin', 'Lớp': '12A1' },
-      { 'Họ tên': 'Phạm Thị D', 'Loại GV': 'chu_nhiem', 'Môn dạy': 'Ngữ văn', 'Lớp': '10A1' },
     ];
 
     const ws1 = XLSX.utils.json_to_sheet(teachersData);
@@ -256,7 +254,7 @@ export default function ImportTeachersPage() {
             <h3 className="font-semibold mb-2">Cấu trúc file mẫu:</h3>
             <div className="text-sm text-text-secondary">
               <p><strong>Họ tên:</strong> Họ và tên đầy đủ</p>
-              <p><strong>Loại GV:</strong> Loại giáo viên (chuyen_chinh / chuyen_phu / bo_mon / chu_nhiem)</p>
+              <p><strong>Loại GV:</strong> chuyen_chinh / chuyen_phu / bo_mon (GVCN import riêng)</p>
               <p><strong>Môn dạy:</strong> Tên môn dạy — nhập bất kỳ tên môn nào, hệ thống tự sinh mã</p>
               <p><strong>Lớp:</strong> Tên lớp (VD: 10A1)</p>
             </div>

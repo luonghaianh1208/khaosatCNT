@@ -459,7 +459,7 @@ export async function importTeachers(teacherMap: {
           subject_code: t.subject_code || null,
           classes: normalizedClasses,
         },
-        { onConflict: 'full_name' }
+        { onConflict: 'full_name,teacher_type' }
       )
       .select()
       .single();
@@ -489,6 +489,50 @@ export async function importTeachers(teacherMap: {
   }
 
   return { success: successCount, message: lastError };
+}
+
+export async function importHomeroom(rows: { class_name: string; full_name: string }[]) {
+  const client = createServiceRoleClient();
+  let successCount = 0;
+  let lastError: string | null = null;
+
+  const { data: activeSession } = await client
+    .from('survey_sessions')
+    .select('id')
+    .eq('is_active', true)
+    .maybeSingle();
+
+  for (const row of rows) {
+    const className = normalizeClass(row.class_name);
+
+    const { data: teacher, error: teacherError } = await client
+      .from('teachers')
+      .upsert(
+        { full_name: row.full_name, teacher_type: 'chu_nhiem', subject: null, subject_code: null, classes: [className] },
+        { onConflict: 'full_name,teacher_type' }
+      )
+      .select()
+      .single();
+
+    if (teacherError || !teacher) {
+      lastError = teacherError?.message ?? 'Không thể tạo GVCN';
+      continue;
+    }
+
+    if (activeSession) {
+      const { error: assignError } = await client
+        .from('teacher_class_assignments')
+        .upsert(
+          { teacher_id: teacher.id, survey_session_id: activeSession.id, class_name: className },
+          { onConflict: 'teacher_id,survey_session_id,class_name' }
+        );
+      if (assignError) lastError = assignError.message;
+    }
+
+    successCount++;
+  }
+
+  return { success: successCount, message: lastError, noSession: !activeSession };
 }
 
 // ─── Reports ─────────────────────────────────────────────────────────────────
