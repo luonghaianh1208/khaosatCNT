@@ -31,7 +31,7 @@ export default function ScoreInput({ value, onChange, disabled = false, hasError
         const val = e.target.value;
         if (val !== '') onChange(Number(val));
       }}
-      className={`h-8 w-16 text-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer text-center transition-all duration-300 ${selectClass}`}
+      className={`h-8 w-12 text-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer text-center appearance-none [text-align-last:center] transition-all duration-300 ${selectClass}`}
     >
       <option value="">-</option>
       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((s) => (
