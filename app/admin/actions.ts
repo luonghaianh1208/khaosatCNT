@@ -437,8 +437,6 @@ export async function importTeachers(teacherMap: {
   classes: string[];
 }[]) {
   const client = createServiceRoleClient();
-  let successCount = 0;
-  let lastError: string | null = null;
 
   const { data: activeSession } = await client
     .from('survey_sessions')
@@ -446,49 +444,40 @@ export async function importTeachers(teacherMap: {
     .eq('is_active', true)
     .maybeSingle();
 
-  for (const t of teacherMap) {
-    const normalizedClasses = t.classes.map(normalizeClass);
+  const rows = teacherMap.map((t) => ({
+    full_name: t.full_name,
+    teacher_type: t.teacher_type,
+    subject: t.subject || null,
+    subject_code: t.subject_code || null,
+    classes: t.classes.map(normalizeClass),
+  }));
 
-    const { data: teacher, error: teacherError } = await client
-      .from('teachers')
-      .upsert(
-        {
-          full_name: t.full_name,
-          teacher_type: t.teacher_type,
-          subject: t.subject || null,
-          subject_code: t.subject_code || null,
-          classes: normalizedClasses,
-        },
-        { onConflict: 'full_name,subject_code' }
-      )
-      .select()
-      .single();
+  const { data: teachers, error: teacherError } = await client
+    .from('teachers')
+    .upsert(rows, { onConflict: 'full_name,subject_code' })
+    .select('id, full_name, subject_code, classes');
 
-    if (teacherError || !teacher) {
-      lastError = teacherError?.message ?? 'Không thể tạo giáo viên';
-      continue;
-    }
-
-    if (activeSession) {
-      for (const className of normalizedClasses) {
-        const { error: assignError } = await client
-          .from('teacher_class_assignments')
-          .upsert(
-            {
-              teacher_id: teacher.id,
-              survey_session_id: activeSession.id,
-              class_name: className,
-            },
-            { onConflict: 'teacher_id,survey_session_id,class_name' }
-          );
-        if (assignError) lastError = assignError.message;
-      }
-    }
-
-    successCount++;
+  if (teacherError || !teachers) {
+    return { success: 0, message: teacherError?.message ?? 'Không thể tạo giáo viên' };
   }
 
-  return { success: successCount, message: lastError };
+  if (activeSession && teachers.length > 0) {
+    const assignments = teachers.flatMap((t) =>
+      (t.classes as string[]).map((className: string) => ({
+        teacher_id: t.id,
+        survey_session_id: activeSession.id,
+        class_name: className,
+      }))
+    );
+    if (assignments.length > 0) {
+      const { error: assignError } = await client
+        .from('teacher_class_assignments')
+        .upsert(assignments, { onConflict: 'teacher_id,survey_session_id,class_name' });
+      if (assignError) return { success: teachers.length, message: assignError.message };
+    }
+  }
+
+  return { success: teachers.length, message: null };
 }
 
 export async function importHomeroom(rows: { class_name: string; full_name: string }[]) {

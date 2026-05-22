@@ -157,8 +157,8 @@ export default function ImportTeachersPage() {
       classes: [...new Set(rows.map(r => r['Lớp']))],
     }));
 
-    // Batch into chunks of 30 to avoid serverless function timeout
-    const BATCH_SIZE = 30;
+    // Batch into chunks of 10 to avoid serverless function timeout
+    const BATCH_SIZE = 10;
     let totalSuccess = 0;
     let lastError: string | null = null;
     setImportProgress({ done: 0, total: payload.length });
