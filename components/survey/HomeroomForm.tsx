@@ -2,13 +2,17 @@
 
 import { Teacher } from '@/lib/types';
 import ScoreInput from './ScoreInput';
+import YesNoInput from './YesNoInput';
 
 interface HomeroomFormProps {
   teacher: Teacher;
-  scores: Record<number, number | null>; // { questionIndex: score }
+  scores: Record<number, number | null>;
+  wantContinue: number | null;
   openFeedback: string;
   onScoreChange: (questionIndex: number, score: number) => void;
+  onWantContinueChange: (val: number) => void;
   onFeedbackChange: (feedback: string) => void;
+  grade?: string;
 }
 
 const QUESTIONS = [
@@ -21,10 +25,14 @@ const QUESTIONS = [
 export default function HomeroomForm({
   teacher,
   scores,
+  wantContinue,
   openFeedback,
   onScoreChange,
+  onWantContinueChange,
   onFeedbackChange,
+  grade,
 }: HomeroomFormProps) {
+  const isGrade12 = grade === '12';
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -61,6 +69,19 @@ export default function HomeroomForm({
                 </td>
               </tr>
             ))}
+            {!isGrade12 && (
+              <tr>
+                <td className="p-3 border border-border text-text-primary">
+                  <span className="font-medium mr-2">{QUESTIONS.length + 1}.</span>
+                  Mong muốn thầy/cô tiếp tục chủ nhiệm lớp năm học sau không?
+                </td>
+                <td className="p-3 border border-border text-center">
+                  <div className="flex justify-center">
+                    <YesNoInput value={wantContinue} onChange={onWantContinueChange} />
+                  </div>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

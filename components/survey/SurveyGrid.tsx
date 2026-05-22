@@ -12,6 +12,7 @@ interface SurveyGridProps {
   onScoreChange: (teacherId: string, questionIndex: number, score: number) => void;
   disabledTeachers: string[];
   userClassName?: string;
+  grade?: string;
 }
 
 export function getDisabledSubjectForClass(className: string): string | null {
@@ -47,9 +48,12 @@ export default function SurveyGrid({
   onScoreChange,
   disabledTeachers,
   userClassName,
+  grade,
 }: SurveyGridProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const disabledSubject = getDisabledSubjectForClass(userClassName || '');
+  const isGrade12 = grade === '12';
+  const visibleQuestions = isGrade12 ? QUESTIONS.slice(0, -1) : QUESTIONS;
 
   const isTeacherDisabled = (teacher: Teacher): boolean => {
     if (disabledTeachers.includes(teacher.id)) return true;
@@ -85,7 +89,7 @@ export default function SurveyGrid({
             </tr>
           </thead>
           <tbody>
-            {QUESTIONS.map((question, qIndex) => (
+            {visibleQuestions.map((question, qIndex) => (
               <tr key={qIndex}>
                 <td className="p-3 border border-border text-text-primary align-top">
                   <span className="font-medium mr-2">{qIndex + 1}.</span>
@@ -167,7 +171,7 @@ export default function SurveyGrid({
 
                 {/* Questions list */}
                 <div className="divide-y divide-border">
-                  {QUESTIONS.map((question, qIndex) => (
+                  {visibleQuestions.map((question, qIndex) => (
                     <div
                       key={qIndex}
                       className={`px-4 py-3 flex items-center gap-3 ${

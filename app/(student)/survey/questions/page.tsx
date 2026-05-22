@@ -33,11 +33,17 @@ export default function QuestionsPage() {
   // Scores
   const [subjectScores, setSubjectScores] = useState<ScoresByTeacher>({});
   const [homeroomScores, setHomeroomScores] = useState<Record<number, number | null>>({});
+  const [homeroomWantContinue, setHomeroomWantContinue] = useState<number | null>(null);
   const [openFeedback, setOpenFeedback] = useState('');
 
   // Calculate progress
   const calculateProgress = useCallback(() => {
-    const totalQuestions = subjectTeachers.length * 5 + 4; // 5 questions per subject teacher + 4 homeroom questions
+    const isGrade12 = user?.grade === '12';
+    // Grade 12: 4 scored q per teacher + 4 homeroom scored q (no want_continue)
+    // Others:   5 q per teacher (4 scored + 1 yes/no) + 5 homeroom q (4 scored + 1 yes/no)
+    const questionsPerTeacher = isGrade12 ? 4 : 5;
+    const homeroomTotal = isGrade12 ? 4 : 5;
+    const totalQuestions = subjectTeachers.length * questionsPerTeacher + homeroomTotal;
     let answeredQuestions = 0;
 
     Object.values(subjectScores).forEach((teacherScores) => {
@@ -50,8 +56,10 @@ export default function QuestionsPage() {
       if (score !== null && score !== undefined) answeredQuestions++;
     });
 
+    if (!isGrade12 && homeroomWantContinue !== null) answeredQuestions++;
+
     return totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0;
-  }, [subjectScores, homeroomScores, subjectTeachers.length]);
+  }, [subjectScores, homeroomScores, homeroomWantContinue, subjectTeachers.length, user?.grade]);
 
   const progress = calculateProgress();
 
@@ -164,6 +172,9 @@ export default function QuestionsPage() {
               3: homeroomResponse.q4_score,
             });
             setOpenFeedback(homeroomResponse.open_feedback || '');
+            if (homeroomResponse.want_continue !== null && homeroomResponse.want_continue !== undefined) {
+              setHomeroomWantContinue(homeroomResponse.want_continue ? 1 : 0);
+            }
           }
         }
 
@@ -197,11 +208,11 @@ export default function QuestionsPage() {
   const handleSubmit = async () => {
     if (!user || !sessionId) return;
 
-    // Validate: require at least one score filled
+    // Validate: require at least one scored question filled (q1-q4)
     let hasScore = false;
     for (const teacher of subjectTeachers) {
       const scores = subjectScores[teacher.id] || {};
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 4; i++) {
         if (scores[i] !== null && scores[i] !== undefined) {
           hasScore = true;
           break;
@@ -253,6 +264,7 @@ export default function QuestionsPage() {
           q2_score: homeroomScores[1] ?? null,
           q3_score: homeroomScores[2] ?? null,
           q4_score: homeroomScores[3] ?? null,
+          want_continue: user.grade === '12' ? null : (homeroomWantContinue === null ? null : homeroomWantContinue === 1),
           open_feedback: openFeedback || null,
         };
 
@@ -348,6 +360,7 @@ export default function QuestionsPage() {
               onScoreChange={handleSubjectScoreChange}
               disabledTeachers={[]}
               userClassName={user?.class_name}
+              grade={user?.grade}
             />
           )}
 
@@ -369,9 +382,12 @@ export default function QuestionsPage() {
           <HomeroomForm
             teacher={homeroomTeacher}
             scores={homeroomScores}
+            wantContinue={homeroomWantContinue}
             openFeedback={openFeedback}
             onScoreChange={handleHomeroomScoreChange}
+            onWantContinueChange={setHomeroomWantContinue}
             onFeedbackChange={setOpenFeedback}
+            grade={user?.grade}
           />
 
           <div className="flex justify-between mt-6">
