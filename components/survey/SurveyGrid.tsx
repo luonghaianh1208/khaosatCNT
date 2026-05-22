@@ -108,6 +108,9 @@ export default function SurveyGrid({
                   <div className="whitespace-nowrap">{teacher.full_name}</div>
                   <div className="text-xs text-text-muted font-normal mt-1">
                     {teacher.subject || 'Giáo viên'}
+                    {teacher.teacher_type === 'chuyen' && (
+                      <span className="ml-1 text-primary font-medium">(GV chuyên)</span>
+                    )}
                   </div>
                 </th>
               ))}
@@ -190,10 +193,10 @@ export default function SurveyGrid({
               >
                 <div className="bg-gradient-to-br from-primary to-primary-dark px-4 py-4 text-center">
                   <div className="font-bold text-white">{currentTeacher.full_name}</div>
-                  <div className="text-xs text-white/75 mt-0.5">{currentTeacher.subject || 'Giáo viên'}</div>
-                  {isTeacherDisabled(currentTeacher) && (
-                    <div className="text-xs text-yellow-200 mt-1">Không đánh giá (môn chuyên)</div>
-                  )}
+                  <div className="text-xs text-white/75 mt-0.5">
+                    {currentTeacher.subject || 'Giáo viên'}
+                    {currentTeacher.teacher_type === 'chuyen' && ' · GV chuyên'}
+                  </div>
                 </div>
 
                 <div className="bg-white p-3 space-y-2">
