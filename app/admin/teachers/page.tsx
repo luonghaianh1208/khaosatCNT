@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getTeachers, createTeacher, updateTeacher, deleteTeacher, addTeacherAssignment, deleteTeacherAssignment } from '@/app/admin/actions';
+import { getTeachers, createTeacher, updateTeacher, deleteTeacher, addTeacherAssignment, deleteTeacherAssignment, deleteManyTeachers } from '@/app/admin/actions';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
@@ -51,6 +51,8 @@ export default function TeachersPage() {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [newClassName, setNewClassName] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -80,7 +82,37 @@ export default function TeachersPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Bạn có chắc chắn muốn xóa giáo viên này?')) return;
     await deleteTeacher(id);
+    setSelectedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
     fetchTeachers();
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedIds.size} giáo viên đã chọn?`)) return;
+    setDeleting(true);
+    try {
+      await deleteManyTeachers(Array.from(selectedIds));
+      setSelectedIds(new Set());
+      fetchTeachers();
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === teachers.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(teachers.map(t => t.id)));
+    }
   };
 
   const handleOpenModal = (teacher?: Teacher) => {
@@ -169,6 +201,16 @@ export default function TeachersPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-28 font-bold">Quản lý giáo viên</h1>
         <div className="flex gap-2">
+          {selectedIds.size > 0 && (
+            <Button
+              variant="ghost"
+              className="w-auto text-crimson border border-crimson hover:bg-crimson/10"
+              onClick={handleBulkDelete}
+              disabled={deleting}
+            >
+              {deleting ? 'Đang xóa...' : `Xóa ${selectedIds.size} mục`}
+            </Button>
+          )}
           <Button
             variant="secondary"
             className="w-auto"
@@ -226,6 +268,14 @@ export default function TeachersPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-bg-light">
+                  <th className="py-4 px-4 w-10">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 accent-primary cursor-pointer"
+                      checked={teachers.length > 0 && selectedIds.size === teachers.length}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
                   <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Họ tên</th>
                   <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Loại</th>
                   <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Môn</th>
@@ -235,7 +285,19 @@ export default function TeachersPage() {
               </thead>
               <tbody>
                 {teachers.map((teacher, index) => (
-                  <tr key={teacher.id} className="border-t border-border hover:bg-bg-light/50 transition-colors animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                  <tr
+                    key={teacher.id}
+                    className={`border-t border-border hover:bg-bg-light/50 transition-colors animate-fade-in ${selectedIds.has(teacher.id) ? 'bg-primary/5' : ''}`}
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <td className="py-3 px-4">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-primary cursor-pointer"
+                        checked={selectedIds.has(teacher.id)}
+                        onChange={() => toggleSelect(teacher.id)}
+                      />
+                    </td>
                     <td className="py-3 px-4">{teacher.full_name}</td>
                     <td className="py-3 px-4">
                       <Badge variant={TEACHER_TYPE_VARIANTS[teacher.teacher_type] || 'secondary'}>

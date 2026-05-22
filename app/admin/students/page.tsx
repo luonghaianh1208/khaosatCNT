@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getStudents, createStudent, updateStudent, deleteStudent, toggleStudentActive } from '@/app/admin/actions';
+import { getStudents, createStudent, updateStudent, deleteStudent, toggleStudentActive, deleteManyStudents } from '@/app/admin/actions';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
@@ -51,6 +51,8 @@ export default function StudentsPage() {
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState('');
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   const [newStudent, setNewStudent] = useState<NewStudentForm>({
     username: '',
@@ -92,7 +94,37 @@ export default function StudentsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Bạn có chắc chắn muốn xóa học sinh này?')) return;
     await deleteStudent(id);
+    setSelectedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
     fetchStudents();
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedIds.size} học sinh đã chọn?`)) return;
+    setDeleting(true);
+    try {
+      await deleteManyStudents(Array.from(selectedIds));
+      setSelectedIds(new Set());
+      fetchStudents();
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === students.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(students.map(s => s.id)));
+    }
   };
 
   const handleOpenEditModal = (student: Student) => {
@@ -198,6 +230,16 @@ export default function StudentsPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-28 font-bold">Quản lý học sinh</h1>
         <div className="flex gap-2">
+          {selectedIds.size > 0 && (
+            <Button
+              variant="ghost"
+              className="w-auto text-crimson border border-crimson hover:bg-crimson/10"
+              onClick={handleBulkDelete}
+              disabled={deleting}
+            >
+              {deleting ? 'Đang xóa...' : `Xóa ${selectedIds.size} mục`}
+            </Button>
+          )}
           <Button
             variant="secondary"
             className="w-auto"
@@ -253,8 +295,17 @@ export default function StudentsPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-bg-light">
+                  <th className="py-4 px-4 w-10">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 accent-primary cursor-pointer"
+                      checked={students.length > 0 && selectedIds.size === students.length}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
                   <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Username</th>
                   <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Họ tên</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Khối</th>
                   <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Lớp</th>
                   <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Trạng thái</th>
                   <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Thao tác</th>
@@ -262,12 +313,23 @@ export default function StudentsPage() {
               </thead>
               <tbody>
                 {students.map((student, index) => (
-                  <tr key={student.id} className="border-t border-border hover:bg-bg-light/50 transition-colors animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                  <tr
+                    key={student.id}
+                    className={`border-t border-border hover:bg-bg-light/50 transition-colors animate-fade-in ${selectedIds.has(student.id) ? 'bg-primary/5' : ''}`}
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <td className="py-3 px-4">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-primary cursor-pointer"
+                        checked={selectedIds.has(student.id)}
+                        onChange={() => toggleSelect(student.id)}
+                      />
+                    </td>
                     <td className="py-3 px-4">{student.username}</td>
                     <td className="py-3 px-4">{student.full_name}</td>
-                    <td className="py-3 px-4">
-                      {student.grade ? `Khối ${student.grade}` : ''} {student.class_name}
-                    </td>
+                    <td className="py-3 px-4">{student.grade ? `Khối ${student.grade}` : '-'}</td>
+                    <td className="py-3 px-4">{student.class_name || '-'}</td>
                     <td className="py-3 px-4">
                       <Badge variant={student.is_active ? 'success' : 'secondary'}>
                         {student.is_active ? 'Hoạt động' : 'Tắt'}

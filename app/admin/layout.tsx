@@ -32,13 +32,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="flex min-h-screen bg-bg-light">
-      {/* Desktop Sidebar - hidden on mobile/tablet */}
-      <div className="hidden lg:block">
+      {/* Desktop Sidebar - sticky */}
+      <div className="hidden lg:block sticky top-0 h-screen flex-shrink-0 self-start">
         <Sidebar />
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-0">
+      <main className="flex-1 min-w-0">
         <div className="p-4 pt-16 lg:p-8 lg:pt-6 max-w-7xl mx-auto">
           {children}
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getSessions, createSession, updateSession, deleteSession, toggleSessionActive } from '@/app/admin/actions';
+import { getSessions, createSession, updateSession, deleteSession, toggleSessionActive, deleteManySessions } from '@/app/admin/actions';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -27,6 +27,8 @@ export default function SessionsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -119,7 +121,37 @@ export default function SessionsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Bạn có chắc chắn muốn xóa đợt khảo sát này?')) return;
     await deleteSession(id);
+    setSelectedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
     fetchSessions();
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedIds.size} đợt khảo sát đã chọn?`)) return;
+    setDeleting(true);
+    try {
+      await deleteManySessions(Array.from(selectedIds));
+      setSelectedIds(new Set());
+      fetchSessions();
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === sessions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(sessions.map(s => s.id)));
+    }
   };
 
   const formatDate = (dateStr: string) => {
@@ -131,9 +163,21 @@ export default function SessionsPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-28 font-bold">Quản lý đợt khảo sát</h1>
-        <Button variant="primary" className="w-auto" onClick={() => handleOpenModal()}>
-          + Tạo mới
-        </Button>
+        <div className="flex gap-2">
+          {selectedIds.size > 0 && (
+            <Button
+              variant="ghost"
+              className="w-auto text-crimson border border-crimson hover:bg-crimson/10"
+              onClick={handleBulkDelete}
+              disabled={deleting}
+            >
+              {deleting ? 'Đang xóa...' : `Xóa ${selectedIds.size} mục`}
+            </Button>
+          )}
+          <Button variant="primary" className="w-auto" onClick={() => handleOpenModal()}>
+            + Tạo mới
+          </Button>
+        </div>
       </div>
 
       {fetchError && (
@@ -155,6 +199,14 @@ export default function SessionsPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-bg-light">
+                  <th className="py-4 px-4 w-10">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 accent-primary cursor-pointer"
+                      checked={sessions.length > 0 && selectedIds.size === sessions.length}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
                   <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Tên đợt khảo sát</th>
                   <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Năm học</th>
                   <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Thời hạn</th>
@@ -164,7 +216,19 @@ export default function SessionsPage() {
               </thead>
               <tbody>
                 {sessions.map((session, index) => (
-                  <tr key={session.id} className="border-t border-border hover:bg-bg-light/50 transition-colors animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                  <tr
+                    key={session.id}
+                    className={`border-t border-border hover:bg-bg-light/50 transition-colors animate-fade-in ${selectedIds.has(session.id) ? 'bg-primary/5' : ''}`}
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <td className="py-3 px-4">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-primary cursor-pointer"
+                        checked={selectedIds.has(session.id)}
+                        onChange={() => toggleSelect(session.id)}
+                      />
+                    </td>
                     <td className="py-3 px-4">
                       <div className="font-medium">{session.name}</div>
                       {session.description && (

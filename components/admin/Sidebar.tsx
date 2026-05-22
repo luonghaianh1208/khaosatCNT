@@ -23,7 +23,7 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="bg-primary w-64 min-h-screen text-white flex flex-col">
+    <aside className="bg-primary w-64 h-screen text-white flex flex-col overflow-y-auto">
       {/* Brand Section */}
       <div className="p-6 border-b border-white/20">
         <div className="flex items-center gap-3">

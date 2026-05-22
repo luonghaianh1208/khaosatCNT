@@ -83,6 +83,12 @@ export async function deleteStudent(id: string) {
   if (error) throw new Error(error.message);
 }
 
+export async function deleteManyStudents(ids: string[]) {
+  const client = createAdminClient();
+  const { error } = await client.from('users').delete().in('id', ids);
+  if (error) throw new Error(error.message);
+}
+
 export async function toggleStudentActive(id: string, isActive: boolean) {
   const client = createAdminClient();
   const { error } = await client
@@ -137,6 +143,12 @@ export async function updateTeacher(
 export async function deleteTeacher(id: string) {
   const client = createAdminClient();
   const { error } = await client.from('teachers').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteManyTeachers(ids: string[]) {
+  const client = createAdminClient();
+  const { error } = await client.from('teachers').delete().in('id', ids);
   if (error) throw new Error(error.message);
 }
 
@@ -218,6 +230,12 @@ export async function deleteSession(id: string) {
     .from('survey_sessions')
     .delete()
     .eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteManySessions(ids: string[]) {
+  const client = createAdminClient();
+  const { error } = await client.from('survey_sessions').delete().in('id', ids);
   if (error) throw new Error(error.message);
 }
 
