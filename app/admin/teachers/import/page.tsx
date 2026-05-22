@@ -30,40 +30,17 @@ const TEACHER_TYPE_LABELS: Record<string, string> = {
   chu_nhiem: 'GVCN',
 };
 
-// Danh mục mã môn - hệ thống tự sinh mã từ tên môn
-const SUBJECT_CODES: Record<string, string> = {
-  'toán': 'toan',
-  'vật lý': 'ly',
-  'lý': 'ly',
-  'hóa học': 'hoa',
-  'hóa': 'hoa',
-  'sinh học': 'sinh',
-  'sinh': 'sinh',
-  'ngữ văn': 'van',
-  'văn': 'van',
-  'lịch sử': 'su',
-  'sử': 'su',
-  'địa lý': 'dia',
-  'địa': 'dia',
-  'tiếng anh': 'anh',
-  'anh': 'anh',
-  'tin học': 'tin',
-  'tin': 'tin',
-  'gdcd': 'gdcd',
-  'công dân': 'gdcd',
-  'quốc phòng': 'qp',
-  'thể dục': 'td',
-  'td': 'td',
-  'gdqp': 'gdqp',
-};
-
-function normalizeSubject(subject: string): string {
-  return subject.toLowerCase().trim();
-}
-
 function getSubjectCode(subject: string): string {
-  const normalized = normalizeSubject(subject);
-  return SUBJECT_CODES[normalized] || normalized.replace(/\s+/g, '_');
+  return (
+    subject
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[đĐ]/g, 'd')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .trim()
+      .replace(/\s+/g, '_') || 'mon_khac'
+  );
 }
 
 function validateRow(row: TeacherRow): ValidatedRow {
@@ -134,19 +111,13 @@ export default function ImportTeachersPage() {
       },
     ];
 
-    // Sheet 2: Danh mục môn (tham khảo)
+    // Sheet 2: Hướng dẫn mã môn
     const subjectsData = [
-      { 'Tên môn': 'Toán', 'Mã môn': 'toan' },
-      { 'Tên môn': 'Vật lý', 'Mã môn': 'ly' },
-      { 'Tên môn': 'Hóa học', 'Mã môn': 'hoa' },
-      { 'Tên môn': 'Sinh học', 'Mã môn': 'sinh' },
-      { 'Tên môn': 'Ngữ văn', 'Mã môn': 'van' },
-      { 'Tên môn': 'Lịch sử', 'Mã môn': 'su' },
-      { 'Tên môn': 'Địa lý', 'Mã môn': 'dia' },
-      { 'Tên môn': 'Tiếng Anh', 'Mã môn': 'anh' },
-      { 'Tên môn': 'Tin học', 'Mã môn': 'tin' },
-      { 'Tên môn': 'GDCD', 'Mã môn': 'gdcd' },
-      { 'Tên môn': 'Thể dục', 'Mã môn': 'td' },
+      { 'Ghi chú': 'Mã môn được tự động sinh từ tên môn (bỏ dấu, viết thường, thay space bằng _)' },
+      { 'Ghi chú': 'Ví dụ: "Công nghệ thông tin" → cong_nghe_thong_tin' },
+      { 'Ghi chú': 'Ví dụ: "Toán" → toan' },
+      { 'Ghi chú': 'Ví dụ: "Thể dục" → the_duc' },
+      { 'Ghi chú': 'Bạn có thể nhập bất kỳ tên môn nào — hệ thống tự xử lý' },
     ];
 
     const ws1 = XLSX.utils.json_to_sheet(teachersData);
@@ -316,14 +287,14 @@ export default function ImportTeachersPage() {
             <div className="text-sm text-text-secondary">
               <p><strong>Họ tên:</strong> Họ và tên đầy đủ</p>
               <p><strong>Loại GV:</strong> Loại giáo viên (chuyen_chinh / chuyen_phu / bo_mon / chu_nhiem)</p>
-              <p><strong>Môn dạy:</strong> Tên môn dạy (VD: Toán, Vật lý) - hệ thống tự sinh mã môn</p>
+              <p><strong>Môn dạy:</strong> Tên môn dạy — nhập bất kỳ tên môn nào, hệ thống tự sinh mã</p>
               <p><strong>Lớp:</strong> Tên lớp (VD: 10A1)</p>
             </div>
           </div>
 
           <div className="mt-4 text-sm text-text-secondary">
             <p className="font-semibold text-warning">Lưu ý quan trọng:</p>
-            <p>• <strong>Mã môn tự động:</strong> Hệ thống tự sinh mã môn từ "Môn dạy". Xem sheet "Danh mục môn" để biết mã tương ứng.</p>
+            <p>• <strong>Môn dạy linh hoạt:</strong> Nhập bất kỳ tên môn nào — hệ thống tự chuyển thành mã (VD: "Công nghệ thông tin" → <code>cong_nghe_thong_tin</code>).</p>
             <p>• <strong>1 giáo viên dạy nhiều lớp:</strong> Tạo nhiều dòng cùng Họ tên, mỗi dòng ghi 1 lớp khác nhau.</p>
             <p>  VD: GV Nguyễn Văn A dạy 10A1, 10A2, 10A3 → cần 3 dòng có cùng Họ tên.</p>
           </div>
