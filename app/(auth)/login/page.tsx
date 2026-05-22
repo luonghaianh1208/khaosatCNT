@@ -10,6 +10,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -63,7 +64,7 @@ export default function LoginPage() {
           Đăng nhập
         </h2>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-4" autoComplete="on">
           <Input
             type="text"
             label="Tên đăng nhập"
@@ -72,6 +73,7 @@ export default function LoginPage() {
             onChange={(e) => setUsername(e.target.value)}
             required
             disabled={loading}
+            autoComplete="username"
           />
 
           <Input
@@ -82,7 +84,22 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
             disabled={loading}
+            autoComplete="current-password"
           />
+
+          <div className="flex items-center gap-2">
+            <input
+              id="remember-me"
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="w-4 h-4 accent-primary cursor-pointer"
+              disabled={loading}
+            />
+            <label htmlFor="remember-me" className="text-sm text-text-primary cursor-pointer select-none">
+              Ghi nhớ đăng nhập
+            </label>
+          </div>
 
           {error && (
             <p className="text-sm text-crimson font-sans text-center">{error}</p>
