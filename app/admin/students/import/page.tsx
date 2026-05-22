@@ -93,6 +93,7 @@ export default function ImportStudentsPage() {
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ValidatedRow[]>([]);
   const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
   const [importResult, setImportResult] = useState<{ success: number; errors: number } | null>(null);
 
   const validCount = parsedData.filter((r) => r.isValid).length;
@@ -178,8 +179,25 @@ export default function ImportStudentsPage() {
       password: row.processedPassword,
     }));
 
-    const result = await importStudents(validRows);
-    setImportResult(result);
+    const BATCH_SIZE = 30;
+    const chunks: typeof validRows[] = [];
+    for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
+      chunks.push(validRows.slice(i, i + BATCH_SIZE));
+    }
+
+    let totalSuccess = 0;
+    let totalErrors = 0;
+    setImportProgress({ done: 0, total: validRows.length });
+
+    for (const chunk of chunks) {
+      const result = await importStudents(chunk);
+      totalSuccess += result.success;
+      totalErrors += result.errors;
+      setImportProgress((prev) => ({ done: (prev?.done ?? 0) + chunk.length, total: validRows.length }));
+    }
+
+    setImportProgress(null);
+    setImportResult({ success: totalSuccess, errors: totalErrors });
     setImporting(false);
   };
 
@@ -373,8 +391,23 @@ export default function ImportStudentsPage() {
               </table>
             </div>
 
+            {importProgress && (
+              <div className="mt-4">
+                <div className="flex justify-between text-xs text-text-secondary mb-1">
+                  <span>Đang import...</span>
+                  <span>{importProgress.done} / {importProgress.total}</span>
+                </div>
+                <div className="h-2 bg-bg-disabled rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-400 to-primary rounded-full transition-all duration-300"
+                    style={{ width: `${Math.round((importProgress.done / importProgress.total) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="mt-6 flex justify-between">
-              <Button variant="secondary" onClick={handleReset}>
+              <Button variant="secondary" onClick={handleReset} disabled={importing}>
                 Chọn file khác
               </Button>
               <Button
