@@ -34,7 +34,9 @@ export default function SessionsPage() {
     name: '',
     school_year: '2025-2026',
     start_date: '',
+    start_time: '07:00',
     end_date: '',
+    end_time: '23:55',
     description: '',
   });
 
@@ -64,11 +66,16 @@ export default function SessionsPage() {
   const handleOpenModal = (session?: SurveySession) => {
     if (session) {
       setEditingSession(session);
+      const sd = new Date(session.start_date);
+      const ed = new Date(session.end_date);
+      const pad = (n: number) => String(n).padStart(2, '0');
       setFormData({
         name: session.name,
         school_year: session.school_year,
         start_date: session.start_date.split('T')[0],
+        start_time: `${pad(sd.getHours())}:${pad(sd.getMinutes())}`,
         end_date: session.end_date.split('T')[0],
+        end_time: `${pad(ed.getHours())}:${pad(ed.getMinutes())}`,
         description: session.description || '',
       });
     } else {
@@ -77,7 +84,9 @@ export default function SessionsPage() {
         name: '',
         school_year: '2025-2026',
         start_date: '',
+        start_time: '07:00',
         end_date: '',
+        end_time: '23:55',
         description: '',
       });
     }
@@ -98,8 +107,8 @@ export default function SessionsPage() {
       const payload = {
         name: formData.name,
         school_year: formData.school_year,
-        start_date: new Date(formData.start_date).toISOString(),
-        end_date: new Date(formData.end_date).toISOString(),
+        start_date: new Date(`${formData.start_date}T${formData.start_time}`).toISOString(),
+        end_date: new Date(`${formData.end_date}T${formData.end_time}`).toISOString(),
         description: formData.description || null,
       };
 
@@ -156,7 +165,10 @@ export default function SessionsPage() {
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('vi-VN');
+    return date.toLocaleString('vi-VN', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    });
   };
 
   return (
@@ -312,22 +324,49 @@ export default function SessionsPage() {
           />
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Ngày bắt đầu"
-              type="date"
-              value={formData.start_date}
-              onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-              required
-              disabled={saving}
-            />
-            <Input
-              label="Ngày kết thúc"
-              type="date"
-              value={formData.end_date}
-              onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-              required
-              disabled={saving}
-            />
+            {(['start', 'end'] as const).map((key) => {
+              const dateKey = `${key}_date` as 'start_date' | 'end_date';
+              const timeKey = `${key}_time` as 'start_time' | 'end_time';
+              const label = key === 'start' ? 'Ngày bắt đầu' : 'Ngày kết thúc';
+              const [hh, mm] = formData[timeKey].split(':');
+              const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+              const minutes = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'];
+              return (
+                <div key={key} className="space-y-1">
+                  <label className="block text-sm font-medium text-text-primary">
+                    {label} <span className="text-crimson">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                    value={formData[dateKey]}
+                    onChange={(e) => setFormData({ ...formData, [dateKey]: e.target.value })}
+                    required
+                    disabled={saving}
+                  />
+                  <div className="flex items-center gap-2 bg-bg-light border border-border rounded-xl px-3 py-2">
+                    <span className="text-text-secondary text-xs font-medium">Giờ</span>
+                    <select
+                      value={hh}
+                      onChange={(e) => setFormData({ ...formData, [timeKey]: `${e.target.value}:${mm}` })}
+                      className="flex-1 text-sm bg-transparent border-none outline-none text-text-primary cursor-pointer font-medium"
+                      disabled={saving}
+                    >
+                      {hours.map((h) => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                    <span className="text-text-secondary font-bold">:</span>
+                    <select
+                      value={mm}
+                      onChange={(e) => setFormData({ ...formData, [timeKey]: `${hh}:${e.target.value}` })}
+                      className="flex-1 text-sm bg-transparent border-none outline-none text-text-primary cursor-pointer font-medium"
+                      disabled={saving}
+                    >
+                      {minutes.map((m) => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           <div>
