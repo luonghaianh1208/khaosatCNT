@@ -24,15 +24,13 @@ interface Teacher {
 }
 
 const TEACHER_TYPE_LABELS: Record<string, string> = {
-  chuyen_chinh: 'GV chuyên chính',
-  chuyen_phu: 'GV chuyên phụ',
+  chuyen: 'GV chuyên',
   bo_mon: 'GV bộ môn',
   chu_nhiem: 'GVCN',
 };
 
 const TEACHER_TYPE_VARIANTS: Record<string, 'primary' | 'success' | 'secondary' | 'warning'> = {
-  chuyen_chinh: 'primary',
-  chuyen_phu: 'success',
+  chuyen: 'primary',
   bo_mon: 'secondary',
   chu_nhiem: 'warning',
 };
@@ -260,8 +258,7 @@ export default function TeachersPage() {
             onChange={(e) => setTypeFilter(e.target.value)}
           >
             <option value="">Tất cả loại</option>
-            <option value="chuyen_chinh">GV chuyên chính</option>
-            <option value="chuyen_phu">GV chuyên phụ</option>
+            <option value="chuyen">GV chuyên</option>
             <option value="bo_mon">GV bộ môn</option>
             <option value="chu_nhiem">GVCN</option>
           </select>
@@ -394,8 +391,7 @@ export default function TeachersPage() {
               onChange={(e) => setFormData({ ...formData, teacher_type: e.target.value })}
               disabled={saving}
             >
-              <option value="chuyen_chinh">GV chuyên chính</option>
-              <option value="chuyen_phu">GV chuyên phụ</option>
+              <option value="chuyen">GV chuyên</option>
               <option value="bo_mon">GV bộ môn</option>
             </select>
           </div>

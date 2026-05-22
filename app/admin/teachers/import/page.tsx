@@ -21,11 +21,10 @@ interface ValidatedRow extends TeacherRow {
   subject_code: string;
 }
 
-const VALID_TEACHER_TYPES = ['chuyen_chinh', 'chuyen_phu', 'bo_mon'];
+const VALID_TEACHER_TYPES = ['chuyen', 'bo_mon'];
 
 const TEACHER_TYPE_LABELS: Record<string, string> = {
-  chuyen_chinh: 'GV chuyên chính',
-  chuyen_phu: 'GV chuyên phụ',
+  chuyen: 'GV chuyên',
   bo_mon: 'GV bộ môn',
 };
 
@@ -89,8 +88,8 @@ export default function ImportTeachersPage() {
 
   const downloadTemplate = () => {
     const teachersData = [
-      { 'Họ tên': 'Nguyễn Văn A', 'Loại GV': 'chuyen_chinh', 'Môn dạy': 'Toán', 'Lớp': '10A1' },
-      { 'Họ tên': 'Nguyễn Văn A', 'Loại GV': 'chuyen_chinh', 'Môn dạy': 'Toán', 'Lớp': '10A2' },
+      { 'Họ tên': 'Nguyễn Văn A', 'Loại GV': 'chuyen', 'Môn dạy': 'Toán', 'Lớp': '10A1' },
+      { 'Họ tên': 'Nguyễn Văn A', 'Loại GV': 'chuyen', 'Môn dạy': 'Toán', 'Lớp': '10A2' },
       { 'Họ tên': 'Trần Thị B', 'Loại GV': 'bo_mon', 'Môn dạy': 'Vật lý', 'Lớp': '11A1' },
       { 'Họ tên': 'Lê Văn C', 'Loại GV': 'bo_mon', 'Môn dạy': 'Công nghệ thông tin', 'Lớp': '12A1' },
     ];
@@ -254,7 +253,7 @@ export default function ImportTeachersPage() {
             <h3 className="font-semibold mb-2">Cấu trúc file mẫu:</h3>
             <div className="text-sm text-text-secondary">
               <p><strong>Họ tên:</strong> Họ và tên đầy đủ</p>
-              <p><strong>Loại GV:</strong> chuyen_chinh / chuyen_phu / bo_mon (GVCN import riêng)</p>
+              <p><strong>Loại GV:</strong> chuyen / bo_mon (GVCN import riêng)</p>
               <p><strong>Môn dạy:</strong> Tên môn dạy — nhập bất kỳ tên môn nào, hệ thống tự sinh mã</p>
               <p><strong>Lớp:</strong> Tên lớp (VD: 10A1)</p>
             </div>
