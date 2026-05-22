@@ -134,10 +134,7 @@ export default function SurveyPage() {
           <p className="text-text-muted text-sm mb-6">
             Đợt khảo sát: {activeSession.name}
           </p>
-          <div className="flex gap-3 justify-center">
-            <Button onClick={() => router.push('/survey/questions')}>
-              Xem / Chỉnh sửa
-            </Button>
+          <div className="flex justify-center">
             <Button variant="secondary" onClick={() => router.push('/login')}>
               Đăng xuất
             </Button>

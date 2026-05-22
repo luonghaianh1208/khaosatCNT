@@ -106,6 +106,19 @@ export default function QuestionsPage() {
 
         setSessionId(session.id);
 
+        // Block re-entry if already submitted
+        const { data: completionCheck } = await supabase
+          .from('survey_completion')
+          .select('is_submitted')
+          .eq('survey_session_id', session.id)
+          .eq('user_id', userProfile.id)
+          .single();
+
+        if (completionCheck?.is_submitted) {
+          router.replace('/survey');
+          return;
+        }
+
         // Get teacher assignments for this user's class
         const { data: assignments, error: assignmentError } = await supabase
           .from('teacher_class_assignments')
