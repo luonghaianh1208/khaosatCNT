@@ -70,6 +70,8 @@ const config: Config = {
         'slide-up': 'slideUp 0.3s ease-out',
         'scale-in': 'scaleIn 0.2s ease-out',
         'pulse-subtle': 'pulseSubtle 2s ease-in-out infinite',
+        'slide-left': 'slideLeft 0.25s ease-out',
+        'slide-right': 'slideRight 0.25s ease-out',
       },
       keyframes: {
         fadeIn: {
@@ -87,6 +89,14 @@ const config: Config = {
         pulseSubtle: {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.85' },
+        },
+        slideLeft: {
+          '0%': { opacity: '0', transform: 'translateX(24px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        slideRight: {
+          '0%': { opacity: '0', transform: 'translateX(-24px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
         },
       },
       transitionDuration: {
