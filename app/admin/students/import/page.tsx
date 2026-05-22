@@ -155,7 +155,7 @@ export default function ImportStudentsPage() {
       const validated = jsonData.map((row) => {
         const normalized = Object.fromEntries(
           Object.entries(row).map(([k, v]) => [k, String(v ?? '')])
-        ) as StudentRow;
+        ) as unknown as StudentRow;
         return validateRow(normalized);
       });
 
