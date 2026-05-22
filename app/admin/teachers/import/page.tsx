@@ -141,16 +141,16 @@ export default function ImportTeachersPage() {
 
     const validRows = parsedData.filter((r) => r.isValid);
 
-    // Group rows by teacher name to handle multi-class assignments
+    // Group by name+type+subject — same teacher different subject/type = separate records
     const teacherGroupMap = new Map<string, ValidatedRow[]>();
     for (const row of validRows) {
-      const key = row['Họ tên'];
+      const key = `${row['Họ tên']}||${row['Loại GV']}||${row['Môn dạy']}`;
       if (!teacherGroupMap.has(key)) teacherGroupMap.set(key, []);
       teacherGroupMap.get(key)!.push(row);
     }
 
-    const payload = Array.from(teacherGroupMap.entries()).map(([teacherName, rows]) => ({
-      full_name: teacherName,
+    const payload = Array.from(teacherGroupMap.values()).map((rows) => ({
+      full_name: rows[0]['Họ tên'],
       teacher_type: rows[0]['Loại GV'],
       subject: rows[0]['Môn dạy'] || '',
       subject_code: rows[0].subject_code || '',

@@ -454,7 +454,7 @@ export async function importTeachers(teacherMap: {
 
   const { data: teachers, error: teacherError } = await client
     .from('teachers')
-    .upsert(rows, { onConflict: 'full_name,subject_code' })
+    .upsert(rows, { onConflict: 'full_name,subject_code,teacher_type' })
     .select('id, full_name, subject_code, classes');
 
   if (teacherError || !teachers) {
@@ -498,7 +498,7 @@ export async function importHomeroom(rows: { class_name: string; full_name: stri
       .from('teachers')
       .upsert(
         { full_name: row.full_name, teacher_type: 'chu_nhiem', subject: null, subject_code: 'gvcn', classes: [className] },
-        { onConflict: 'full_name,subject_code' }
+        { onConflict: 'full_name,subject_code,teacher_type' }
       )
       .select()
       .single();
