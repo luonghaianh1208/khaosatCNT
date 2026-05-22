@@ -67,6 +67,7 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-4" autoComplete="on">
           <Input
             type="text"
+            name="username"
             label="Tên đăng nhập"
             placeholder="Nhập tên đăng nhập"
             value={username}
@@ -78,6 +79,7 @@ export default function LoginPage() {
 
           <Input
             type="password"
+            name="password"
             label="Mật khẩu"
             placeholder="Nhập mật khẩu"
             value={password}
