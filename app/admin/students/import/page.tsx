@@ -94,7 +94,7 @@ export default function ImportStudentsPage() {
   const [parsedData, setParsedData] = useState<ValidatedRow[]>([]);
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
-  const [importResult, setImportResult] = useState<{ success: number; errors: number } | null>(null);
+  const [importResult, setImportResult] = useState<{ success: number; errors: number; message?: string | null } | null>(null);
 
   const validCount = parsedData.filter((r) => r.isValid).length;
   const errorCount = parsedData.filter((r) => !r.isValid).length;
@@ -187,17 +187,19 @@ export default function ImportStudentsPage() {
 
     let totalSuccess = 0;
     let totalErrors = 0;
+    let lastMessage: string | null = null;
     setImportProgress({ done: 0, total: validRows.length });
 
     for (const chunk of chunks) {
       const result = await importStudents(chunk);
       totalSuccess += result.success;
       totalErrors += result.errors;
+      if (result.message) lastMessage = result.message;
       setImportProgress((prev) => ({ done: (prev?.done ?? 0) + chunk.length, total: validRows.length }));
     }
 
     setImportProgress(null);
-    setImportResult({ success: totalSuccess, errors: totalErrors });
+    setImportResult({ success: totalSuccess, errors: totalErrors, message: lastMessage });
     setImporting(false);
   };
 
@@ -215,19 +217,24 @@ export default function ImportStudentsPage() {
     return (
       <div>
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-28 font-bold">Import học sinh</h1>
+          <h1 className="text-xl font-bold text-text-primary">Import học sinh</h1>
         </div>
 
         <Card>
           <div className="text-center py-8">
             <div className="text-success text-5xl mb-4">✓</div>
             <h2 className="text-xl font-bold mb-2">Import thành công!</h2>
-            <p className="text-textSecondary mb-6">
+            <p className="text-text-secondary mb-2">
               Đã import <strong>{importResult.success}</strong> học sinh thành công
               {importResult.errors > 0 && (
                 <span className="text-crimson"> ({importResult.errors} dòng lỗi)</span>
               )}
             </p>
+            {importResult.message && (
+              <p className="text-xs text-crimson mb-4 bg-crimson/5 border border-crimson/20 rounded-xl px-4 py-2 max-w-md mx-auto">
+                Lỗi: {importResult.message}
+              </p>
+            )}
             <Button variant="primary" onClick={() => router.push('/admin/students')}>
               Quay về danh sách
             </Button>
@@ -240,7 +247,7 @@ export default function ImportStudentsPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-28 font-bold">Import học sinh</h1>
+        <h1 className="text-xl font-bold text-text-primary">Import học sinh</h1>
         <Button variant="secondary" className="w-auto" onClick={() => router.push('/admin/students')}>
           ← Quay về
         </Button>

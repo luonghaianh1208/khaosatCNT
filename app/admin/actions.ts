@@ -326,6 +326,7 @@ export async function importStudents(rows: {
     gender: string;
     grade: string;
     class_name: string;
+    is_active: boolean;
     auth_user_id: string | null;
   }[] = [];
 
@@ -360,6 +361,7 @@ export async function importStudents(rows: {
         gender: row.gender,
         grade: row.grade,
         class_name: row.class_name,
+        is_active: true,
         auth_user_id: authUserId,
       });
     } catch {
@@ -374,11 +376,11 @@ export async function importStudents(rows: {
       .upsert(userRows, { onConflict: 'username' });
     if (error) {
       errorCount += userRows.length;
-      return { success: 0, errors: errorCount };
+      return { success: 0, errors: errorCount, message: error.message };
     }
   }
 
-  return { success: userRows.length, errors: errorCount };
+  return { success: userRows.length, errors: errorCount, message: null };
 }
 
 export async function importTeachers(teacherMap: {
