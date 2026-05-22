@@ -104,11 +104,12 @@ export default function SessionsPage() {
     setError('');
 
     try {
+      // Append +07:00 so the picked time is treated as Hanoi time (GMT+7)
       const payload = {
         name: formData.name,
         school_year: formData.school_year,
-        start_date: new Date(`${formData.start_date}T${formData.start_time}`).toISOString(),
-        end_date: new Date(`${formData.end_date}T${formData.end_time}`).toISOString(),
+        start_date: new Date(`${formData.start_date}T${formData.start_time}:00+07:00`).toISOString(),
+        end_date: new Date(`${formData.end_date}T${formData.end_time}:00+07:00`).toISOString(),
         description: formData.description || null,
       };
 
@@ -166,6 +167,7 @@ export default function SessionsPage() {
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleString('vi-VN', {
+      timeZone: 'Asia/Ho_Chi_Minh',
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: false,
     });
