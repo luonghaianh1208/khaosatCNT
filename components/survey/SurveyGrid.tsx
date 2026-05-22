@@ -66,7 +66,7 @@ export default function SurveyGrid({
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr>
-              <th className="text-left p-3 bg-bg-light border border-border font-medium text-text-primary min-w-[260px]">
+              <th className="text-left p-3 bg-bg-light border border-border font-medium text-text-primary w-[180px]">
                 Tiêu chí
               </th>
               {teachers.map((teacher) => (
