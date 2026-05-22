@@ -75,6 +75,17 @@ export default function TeachersPage() {
     }
   };
 
+  const refreshTeachers = async (keepSelectedId?: string) => {
+    try {
+      const data = await getTeachers(search, typeFilter);
+      setTeachers(data || []);
+      if (keepSelectedId) {
+        const updated = (data || []).find((t) => t.id === keepSelectedId);
+        if (updated) setSelectedTeacher(updated);
+      }
+    } catch { /* ignore */ }
+  };
+
   useEffect(() => {
     fetchTeachers();
   }, [search, typeFilter]);
@@ -170,25 +181,21 @@ export default function TeachersPage() {
   };
 
   const handleAddAssignment = async () => {
-    if (!selectedTeacher || !newClassName) return;
-
+    if (!selectedTeacher || !newClassName.trim()) return;
     try {
-      await addTeacherAssignment(selectedTeacher.id, newClassName);
+      await addTeacherAssignment(selectedTeacher.id, newClassName.trim());
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Đã xảy ra lỗi');
       return;
     }
-
-    setShowAssignmentModal(false);
     setNewClassName('');
-    setSelectedTeacher(null);
-    fetchTeachers();
+    await refreshTeachers(selectedTeacher.id);
   };
 
   const handleDeleteAssignment = async (assignmentId: string) => {
     if (!confirm('Bạn có chắc chắn muốn xóa phân công này?')) return;
     await deleteTeacherAssignment(assignmentId);
-    fetchTeachers();
+    await refreshTeachers(selectedTeacher?.id);
   };
 
   const getClassesDisplay = (assignments?: TeacherAssignment[]) => {
@@ -414,7 +421,7 @@ export default function TeachersPage() {
         </div>
       </Modal>
 
-      {/* Add Class Assignment Modal */}
+      {/* Add/Remove Class Assignment Modal */}
       <Modal
         isOpen={showAssignmentModal}
         onClose={() => {
@@ -426,27 +433,57 @@ export default function TeachersPage() {
       >
         <div className="space-y-4">
           <p className="text-sm text-text-secondary">
-            Đang phân công cho: <strong>{selectedTeacher?.full_name}</strong>
+            Giáo viên: <strong>{selectedTeacher?.full_name}</strong>
           </p>
 
-          <Input
-            label="Tên lớp"
-            value={newClassName}
-            onChange={(e) => setNewClassName(e.target.value)}
-            placeholder="10 Toán, 10 Lý,..."
-            required
-          />
+          {/* Current assignments */}
+          <div>
+            <p className="text-xs font-medium text-text-secondary mb-2">Lớp đang phân công:</p>
+            {(selectedTeacher?.teacher_class_assignments?.length ?? 0) > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {selectedTeacher?.teacher_class_assignments?.map((a) => (
+                  <span
+                    key={a.id}
+                    className="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-sm px-3 py-1.5 rounded-lg"
+                  >
+                    {a.class_name}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteAssignment(a.id)}
+                      className="text-primary/50 hover:text-crimson transition-colors leading-none text-base"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-text-muted italic">Chưa phân công lớp nào</p>
+            )}
+          </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t border-border">
+          {/* Add new class */}
+          <div className="flex gap-2 items-end pt-2 border-t border-border">
+            <div className="flex-1">
+              <Input
+                label="Thêm lớp mới"
+                value={newClassName}
+                onChange={(e) => setNewClassName(e.target.value)}
+                placeholder="10A1"
+              />
+            </div>
+            <Button className="w-auto" onClick={handleAddAssignment}>
+              Thêm
+            </Button>
+          </div>
+
+          <div className="flex justify-end pt-2 border-t border-border">
             <Button variant="secondary" onClick={() => {
               setShowAssignmentModal(false);
               setSelectedTeacher(null);
               setNewClassName('');
             }}>
-              Hủy
-            </Button>
-            <Button onClick={handleAddAssignment}>
-              Thêm
+              Đóng
             </Button>
           </div>
         </div>

@@ -159,25 +159,49 @@ export async function addTeacherAssignment(teacherId: string, className: string)
     .from('survey_sessions')
     .select('id')
     .eq('is_active', true)
-    .single();
+    .maybeSingle();
 
-  if (!session) throw new Error('Không có đợt khảo sát đang hoạt động');
+  if (session) {
+    const { error } = await client.from('teacher_class_assignments').insert({
+      teacher_id: teacherId,
+      survey_session_id: session.id,
+      class_name: className,
+    });
+    if (error) throw new Error(error.message);
+  }
 
-  const { error } = await client.from('teacher_class_assignments').insert({
-    teacher_id: teacherId,
-    survey_session_id: session.id,
-    class_name: className,
-  });
-  if (error) throw new Error(error.message);
+  // Sync teachers.classes template
+  const { data: teacher } = await client.from('teachers').select('classes').eq('id', teacherId).single();
+  const newClasses = [...new Set([...(teacher?.classes || []), className])];
+  await client.from('teachers').update({ classes: newClasses }).eq('id', teacherId);
 }
 
 export async function deleteTeacherAssignment(assignmentId: string) {
   const client = createAdminClient();
+
+  // Fetch first to get teacher_id + class_name for sync
+  const { data: assignment } = await client
+    .from('teacher_class_assignments')
+    .select('teacher_id, class_name')
+    .eq('id', assignmentId)
+    .single();
+
   const { error } = await client
     .from('teacher_class_assignments')
     .delete()
     .eq('id', assignmentId);
   if (error) throw new Error(error.message);
+
+  // Sync teachers.classes template
+  if (assignment) {
+    const { data: teacher } = await client
+      .from('teachers')
+      .select('classes')
+      .eq('id', assignment.teacher_id)
+      .single();
+    const newClasses = (teacher?.classes || []).filter((c: string) => c !== assignment.class_name);
+    await client.from('teachers').update({ classes: newClasses }).eq('id', assignment.teacher_id);
+  }
 }
 
 // ─── Sessions ────────────────────────────────────────────────────────────────
