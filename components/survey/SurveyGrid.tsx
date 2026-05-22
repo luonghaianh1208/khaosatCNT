@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Teacher } from '@/lib/types';
 import ScoreInput from './ScoreInput';
@@ -13,6 +13,8 @@ interface SurveyGridProps {
   disabledTeachers: string[];
   userClassName?: string;
   grade?: string;
+  submitAttempted: boolean;
+  missingTeacherIds: string[];
 }
 
 export function getDisabledSubjectForClass(className: string): string | null {
@@ -49,8 +51,11 @@ export default function SurveyGrid({
   disabledTeachers,
   userClassName,
   grade,
+  submitAttempted,
+  missingTeacherIds,
 }: SurveyGridProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [direction, setDirection] = useState<'left' | 'right'>('left');
   const disabledSubject = getDisabledSubjectForClass(userClassName || '');
   const isGrade12 = grade === '12';
   const visibleQuestions = isGrade12 ? QUESTIONS.slice(0, -1) : QUESTIONS;
@@ -61,11 +66,46 @@ export default function SurveyGrid({
     return false;
   };
 
+  useEffect(() => {
+    if (missingTeacherIds.length > 0) {
+      const idx = teachers.findIndex((t) => missingTeacherIds.includes(t.id));
+      if (idx !== -1 && idx !== currentIndex) {
+        setDirection(idx > currentIndex ? 'left' : 'right');
+        setCurrentIndex(idx);
+      }
+    }
+  }, [missingTeacherIds]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const goNext = () => {
+    setDirection('left');
+    setCurrentIndex((i) => Math.min(teachers.length - 1, i + 1));
+  };
+
+  const goPrev = () => {
+    setDirection('right');
+    setCurrentIndex((i) => Math.max(0, i - 1));
+  };
+
   const currentTeacher = teachers[currentIndex];
+
+  const getQState = (teacher: Teacher, qIndex: number) => {
+    const disabled = isTeacherDisabled(teacher);
+    const val = scores[teacher.id]?.[qIndex] ?? null;
+    const isAnswered = val !== null;
+    const hasError = submitAttempted && !isAnswered && !disabled;
+    return { disabled, val, isAnswered, hasError };
+  };
+
+  const bubbleClass = (isAnswered: boolean, hasError: boolean, disabled: boolean) => {
+    if (disabled) return 'bg-bg-disabled border-border';
+    if (isAnswered) return 'bg-[#f0faf4] border-[1.5px] border-[#28a745]';
+    if (hasError) return 'bg-[#fff8f8] border-[1.5px] border-[#dc3545]';
+    return 'bg-[#f8fbff] border border-[#dee2e6]';
+  };
 
   return (
     <>
-      {/* ===== DESKTOP TABLE (≥1024px) ===== */}
+      {/* ===== DESKTOP TABLE (>=1024px) ===== */}
       <div className="hidden lg:block overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
@@ -96,25 +136,27 @@ export default function SurveyGrid({
                   {question}
                 </td>
                 {teachers.map((teacher) => {
-                  const disabled = isTeacherDisabled(teacher);
+                  const { disabled, val, isAnswered, hasError } = getQState(teacher, qIndex);
                   return (
                     <td
                       key={teacher.id}
-                      className={`p-3 border border-border text-center align-middle ${
-                        disabled ? 'bg-bg-disabled' : ''
+                      className={`p-2 border border-border text-center align-middle transition-colors duration-300 ${
+                        disabled ? 'bg-bg-disabled' : isAnswered ? 'bg-[#f0faf4]' : hasError ? 'bg-[#fff8f8]' : ''
                       }`}
                     >
                       {qIndex === LAST_Q ? (
                         <YesNoInput
-                          value={scores[teacher.id]?.[qIndex] ?? null}
-                          onChange={(val) => onScoreChange(teacher.id, qIndex, val)}
+                          value={val}
+                          onChange={(v) => onScoreChange(teacher.id, qIndex, v)}
                           disabled={disabled}
+                          hasError={hasError}
                         />
                       ) : (
                         <ScoreInput
-                          value={scores[teacher.id]?.[qIndex] ?? null}
-                          onChange={(score) => onScoreChange(teacher.id, qIndex, score)}
+                          value={val}
+                          onChange={(s) => onScoreChange(teacher.id, qIndex, s)}
                           disabled={disabled}
+                          hasError={hasError}
                         />
                       )}
                     </td>
@@ -128,94 +170,108 @@ export default function SurveyGrid({
 
       {/* ===== MOBILE / TABLET CARD VIEW (<1024px) ===== */}
       <div className="block lg:hidden">
-        {teachers.length === 0 ? null : (
+        {teachers.length > 0 && (
           <>
-            {/* Navigation header */}
             <div className="flex items-center justify-between mb-4">
               <button
                 type="button"
-                onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
+                onClick={goPrev}
                 disabled={currentIndex === 0}
-                className="flex items-center gap-1 px-3 py-2 text-sm border border-border rounded-[2px] bg-white hover:bg-bg-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 px-3 py-2 text-sm border border-border rounded-xl bg-white hover:bg-bg-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="w-4 h-4" />
                 Trước
               </button>
-
               <span className="text-sm text-text-secondary font-medium">
-                Giáo viên {currentIndex + 1} / {teachers.length}
+                {currentIndex + 1} / {teachers.length}
               </span>
-
               <button
                 type="button"
-                onClick={() => setCurrentIndex((i) => Math.min(teachers.length - 1, i + 1))}
+                onClick={goNext}
                 disabled={currentIndex === teachers.length - 1}
-                className="flex items-center gap-1 px-3 py-2 text-sm border border-border rounded-[2px] bg-white hover:bg-bg-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 px-3 py-2 text-sm border border-border rounded-xl bg-white hover:bg-bg-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Sau
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Teacher card */}
             {currentTeacher && (
-              <div className={`border border-border rounded-modal overflow-hidden ${isTeacherDisabled(currentTeacher) ? 'opacity-60' : ''}`}>
-                {/* Teacher header */}
-                <div className="bg-primary px-4 py-3 text-center">
-                  <div className="font-medium text-white text-sm">{currentTeacher.full_name}</div>
-                  <div className="text-xs text-white/80 mt-0.5">{currentTeacher.subject || 'Giáo viên'}</div>
+              <div
+                key={currentIndex}
+                className={`rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-[#e8f0fb] ${
+                  direction === 'left' ? 'animate-slide-left' : 'animate-slide-right'
+                } ${isTeacherDisabled(currentTeacher) ? 'opacity-60' : ''}`}
+              >
+                <div className="bg-gradient-to-br from-primary to-primary-dark px-4 py-4 text-center">
+                  <div className="font-bold text-white">{currentTeacher.full_name}</div>
+                  <div className="text-xs text-white/75 mt-0.5">{currentTeacher.subject || 'Giáo viên'}</div>
                   {isTeacherDisabled(currentTeacher) && (
                     <div className="text-xs text-yellow-200 mt-1">Không đánh giá (môn chuyên)</div>
                   )}
                 </div>
 
-                {/* Questions list */}
-                <div className="divide-y divide-border">
-                  {visibleQuestions.map((question, qIndex) => (
-                    <div
-                      key={qIndex}
-                      className={`px-4 py-3 flex items-center gap-3 ${
-                        isTeacherDisabled(currentTeacher) ? 'bg-bg-disabled' : 'bg-white'
-                      }`}
-                    >
-                      <div className="text-sm text-text-primary flex-1 min-w-0">
-                        <span className="font-medium mr-1">{qIndex + 1}.</span>
-                        {question}
+                <div className="bg-white p-3 space-y-2">
+                  {visibleQuestions.map((question, qIndex) => {
+                    const { disabled, val, isAnswered, hasError } = getQState(currentTeacher, qIndex);
+                    return (
+                      <div
+                        key={qIndex}
+                        className={`flex items-center gap-3 px-3 py-3 rounded-xl border transition-all duration-300 ${bubbleClass(isAnswered, hasError, disabled)}`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          {hasError && (
+                            <div className="text-[10px] text-[#dc3545] font-bold mb-0.5">⚠ Chưa điền</div>
+                          )}
+                          <div className="text-sm text-text-primary">
+                            <span className={`font-semibold mr-1 ${isAnswered ? 'text-[#28a745]' : ''}`}>
+                              {isAnswered ? '✓' : `${qIndex + 1}.`}
+                            </span>
+                            {question}
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0">
+                          {qIndex === LAST_Q ? (
+                            <YesNoInput
+                              value={val}
+                              onChange={(v) => onScoreChange(currentTeacher.id, qIndex, v)}
+                              disabled={disabled}
+                              hasError={hasError}
+                            />
+                          ) : (
+                            <ScoreInput
+                              value={val}
+                              onChange={(s) => onScoreChange(currentTeacher.id, qIndex, s)}
+                              disabled={disabled}
+                              hasError={hasError}
+                            />
+                          )}
+                        </div>
                       </div>
-                      <div className="flex-shrink-0">
-                        {qIndex === LAST_Q ? (
-                          <YesNoInput
-                            value={scores[currentTeacher.id]?.[qIndex] ?? null}
-                            onChange={(val) => onScoreChange(currentTeacher.id, qIndex, val)}
-                            disabled={isTeacherDisabled(currentTeacher)}
-                          />
-                        ) : (
-                          <ScoreInput
-                            value={scores[currentTeacher.id]?.[qIndex] ?? null}
-                            onChange={(score) => onScoreChange(currentTeacher.id, qIndex, score)}
-                            disabled={isTeacherDisabled(currentTeacher)}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* Dot indicators */}
             {teachers.length > 1 && (
               <div className="flex justify-center gap-2 mt-4 flex-wrap">
-                {teachers.map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setCurrentIndex(i)}
-                    className={`w-2 h-2 rounded-full transition-colors ${
-                      i === currentIndex ? 'bg-primary' : 'bg-border'
-                    }`}
-                  />
-                ))}
+                {teachers.map((teacher, i) => {
+                  const isMissing = missingTeacherIds.includes(teacher.id);
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        setDirection(i > currentIndex ? 'left' : 'right');
+                        setCurrentIndex(i);
+                      }}
+                      className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                        i === currentIndex ? 'bg-primary scale-125' : isMissing ? 'bg-[#dc3545]' : 'bg-border'
+                      }`}
+                    />
+                  );
+                })}
               </div>
             )}
           </>
