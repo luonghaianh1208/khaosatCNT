@@ -19,7 +19,7 @@ export default function Card({ className = '', children, hoverable = false, padd
 
   return (
     <div
-      className={`bg-white border border-border rounded-modal shadow-md ${paddingStyles[padding]} ${hoverStyles} ${className}`}
+      className={`bg-white border border-[#e8f0fb] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] ${paddingStyles[padding]} ${hoverStyles} ${className}`}
       {...props}
     >
       {children}

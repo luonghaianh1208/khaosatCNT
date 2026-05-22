@@ -13,7 +13,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-primary h-12 flex items-center justify-between px-6 text-white">
+    <nav className="bg-primary h-12 flex items-center justify-between px-6 text-white shadow-md">
       <Link href="/survey" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
         <div className="w-8 h-8 rounded overflow-hidden flex items-center justify-center">
           <img src="/cnt-logo.png" alt="CNT Logo" className="w-full h-full object-contain" />
