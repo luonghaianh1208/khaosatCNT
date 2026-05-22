@@ -398,7 +398,7 @@ export async function importTeachers(teacherMap: {
     .from('survey_sessions')
     .select('id')
     .eq('is_active', true)
-    .single();
+    .maybeSingle();
 
   for (const t of teacherMap) {
     const { data: teacher, error: teacherError } = await client
@@ -434,14 +434,12 @@ export async function importTeachers(teacherMap: {
           );
         if (assignError) lastError = assignError.message;
       }
-    } else {
-      lastError = 'Không có đợt khảo sát đang hoạt động — giáo viên được tạo nhưng chưa phân công lớp';
     }
 
     successCount++;
   }
 
-  return { success: successCount, message: lastError };
+  return { success: successCount, message: lastError, noSession: !activeSession };
 }
 
 // ─── Reports ─────────────────────────────────────────────────────────────────
