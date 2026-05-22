@@ -3,6 +3,8 @@
 import { createAdminClient } from '@/lib/supabase/server-action-client';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 
+const normalizeClass = (s: string) => s.trim().replace(/\s+/g, ' ');
+
 // ─── Students ───────────────────────────────────────────────────────────────
 
 export async function getStudents(search: string, gradeFilter: string) {
@@ -54,7 +56,7 @@ export async function createStudent(payload: {
     date_of_birth: payload.date_of_birth || null,
     gender: payload.gender,
     grade: payload.grade,
-    class_name: payload.class_name,
+    class_name: normalizeClass(payload.class_name),
     is_active: true,
     auth_user_id: authUserId,
   });
@@ -74,7 +76,10 @@ export async function updateStudent(
   }
 ) {
   const client = createAdminClient();
-  const { error } = await client.from('users').update(payload).eq('id', id);
+  const { error } = await client.from('users').update({
+    ...payload,
+    class_name: normalizeClass(payload.class_name),
+  }).eq('id', id);
   if (error) throw new Error(error.message);
 }
 
@@ -155,6 +160,8 @@ export async function deleteManyTeachers(ids: string[]) {
 
 export async function addTeacherAssignment(teacherId: string, className: string) {
   const client = createAdminClient();
+  const normalized = normalizeClass(className);
+
   const { data: session } = await client
     .from('survey_sessions')
     .select('id')
@@ -165,14 +172,14 @@ export async function addTeacherAssignment(teacherId: string, className: string)
     const { error } = await client.from('teacher_class_assignments').insert({
       teacher_id: teacherId,
       survey_session_id: session.id,
-      class_name: className,
+      class_name: normalized,
     });
     if (error) throw new Error(error.message);
   }
 
   // Sync teachers.classes template
   const { data: teacher } = await client.from('teachers').select('classes').eq('id', teacherId).single();
-  const newClasses = [...new Set([...(teacher?.classes || []), className])];
+  const newClasses = [...new Set([...(teacher?.classes || []), normalized])];
   await client.from('teachers').update({ classes: newClasses }).eq('id', teacherId);
 }
 
@@ -282,7 +289,7 @@ export async function setActiveSession(id: string) {
   for (const teacher of teachers || []) {
     for (const className of (teacher.classes || [])) {
       await client.from('teacher_class_assignments').upsert(
-        { teacher_id: teacher.id, survey_session_id: id, class_name: className },
+        { teacher_id: teacher.id, survey_session_id: id, class_name: normalizeClass(className) },
         { onConflict: 'teacher_id,survey_session_id,class_name' }
       );
     }
@@ -399,7 +406,7 @@ export async function importStudents(rows: {
         date_of_birth: row.date_of_birth,
         gender: row.gender,
         grade: row.grade,
-        class_name: row.class_name,
+        class_name: normalizeClass(row.class_name),
         is_active: true,
         auth_user_id: authUserId,
       });
@@ -440,6 +447,8 @@ export async function importTeachers(teacherMap: {
     .maybeSingle();
 
   for (const t of teacherMap) {
+    const normalizedClasses = t.classes.map(normalizeClass);
+
     const { data: teacher, error: teacherError } = await client
       .from('teachers')
       .upsert(
@@ -448,7 +457,7 @@ export async function importTeachers(teacherMap: {
           teacher_type: t.teacher_type,
           subject: t.subject || null,
           subject_code: t.subject_code || null,
-          classes: t.classes,
+          classes: normalizedClasses,
         },
         { onConflict: 'full_name' }
       )
@@ -461,7 +470,7 @@ export async function importTeachers(teacherMap: {
     }
 
     if (activeSession) {
-      for (const className of t.classes) {
+      for (const className of normalizedClasses) {
         const { error: assignError } = await client
           .from('teacher_class_assignments')
           .upsert(
