@@ -297,7 +297,7 @@ export default function SessionsPage() {
             label="Tên đợt khảo sát"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="Khảo sát GV HK1 2025-2026"
+            placeholder="Khảo sát GV năm học 2025-2026"
             required
             disabled={saving}
           />
