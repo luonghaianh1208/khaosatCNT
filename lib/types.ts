@@ -26,7 +26,7 @@ export interface SurveySession {
 export interface Teacher {
   id: string;
   full_name: string;
-  teacher_type: 'chuyen_chinh' | 'chuyen_phu' | 'bo_mon' | 'chu_nhiem';
+  teacher_type: 'chuyen' | 'bo_mon' | 'chu_nhiem';
   subject: string | null;
   subject_code: string | null;
   created_at?: string;

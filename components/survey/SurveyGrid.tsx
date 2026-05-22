@@ -62,7 +62,8 @@ export default function SurveyGrid({
 
   const isTeacherDisabled = (teacher: Teacher): boolean => {
     if (disabledTeachers.includes(teacher.id)) return true;
-    if (disabledSubject && teacher.subject_code === disabledSubject) return true;
+    // Chỉ disable GV bộ môn trùng môn chuyên của lớp — GV chuyên vẫn đánh giá bình thường
+    if (disabledSubject && teacher.subject_code === disabledSubject && teacher.teacher_type === 'bo_mon') return true;
     return false;
   };
 
