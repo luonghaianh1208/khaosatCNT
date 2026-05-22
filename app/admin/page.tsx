@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getDashboardStats } from '@/app/admin/actions';
+import { supabase } from '@/lib/supabase/client';
 import Card from '@/components/ui/Card';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { Users, GraduationCap, Target, CheckCircle, TrendingUp } from 'lucide-react';
@@ -15,12 +16,30 @@ export default function AdminDashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isLive, setIsLive] = useState(false);
 
-  useEffect(() => {
+  const fetchStats = () =>
     getDashboardStats()
       .then((data) => { if (data) setStats(data); })
       .catch(() => setFetchError('Không thể tải dữ liệu dashboard. Vui lòng kiểm tra cấu hình Supabase.'))
       .finally(() => setLoading(false));
+
+  useEffect(() => {
+    fetchStats();
+
+    const channel = supabase
+      .channel('admin-dashboard')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'survey_completion' }, () => {
+        fetchStats();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'survey_responses' }, () => {
+        fetchStats();
+      })
+      .subscribe((status) => {
+        setIsLive(status === 'SUBSCRIBED');
+      });
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   if (loading) {
@@ -39,9 +58,17 @@ export default function AdminDashboard() {
           {fetchError}
         </div>
       )}
-      <div className="mb-8">
-        <h1 className="text-28 font-bold text-textPrimary mb-2">Dashboard</h1>
-        <p className="text-16 text-textSecondary">Tổng quan về đợt khảo sát hiện tại</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-28 font-bold text-textPrimary mb-2">Dashboard</h1>
+          <p className="text-16 text-textSecondary">Tổng quan về đợt khảo sát hiện tại</p>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <span className={`inline-block w-2 h-2 rounded-full ${isLive ? 'bg-success animate-pulse' : 'bg-border'}`} />
+          <span className={isLive ? 'text-success font-medium' : 'text-textSecondary'}>
+            {isLive ? 'Live' : 'Đang kết nối...'}
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
