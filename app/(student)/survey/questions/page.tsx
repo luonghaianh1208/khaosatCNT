@@ -304,7 +304,7 @@ export default function QuestionsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 container">
+    <div className="space-y-6">
       {/* Sticky Progress Bar */}
       <div className="bg-white rounded-modal p-4 shadow-md sticky top-4 z-10">
         <div className="flex items-center justify-between mb-2">
