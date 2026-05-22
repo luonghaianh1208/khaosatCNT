@@ -81,6 +81,7 @@ export default function ImportTeachersPage() {
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ValidatedRow[]>([]);
   const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
   const [importResult, setImportResult] = useState<{ success: number; errors: number; message?: string | null } | null>(null);
 
   const validCount = parsedData.filter((r) => r.isValid).length;
@@ -156,8 +157,22 @@ export default function ImportTeachersPage() {
       classes: [...new Set(rows.map(r => r['Lớp']))],
     }));
 
-    const result = await importTeachers(payload);
-    setImportResult({ success: result.success, errors: validRows.length - result.success, message: result.message ?? null });
+    // Batch into chunks of 30 to avoid serverless function timeout
+    const BATCH_SIZE = 30;
+    let totalSuccess = 0;
+    let lastError: string | null = null;
+    setImportProgress({ done: 0, total: payload.length });
+
+    for (let i = 0; i < payload.length; i += BATCH_SIZE) {
+      const batch = payload.slice(i, i + BATCH_SIZE);
+      const result = await importTeachers(batch);
+      totalSuccess += result.success;
+      if (result.message) lastError = result.message;
+      setImportProgress({ done: Math.min(i + BATCH_SIZE, payload.length), total: payload.length });
+    }
+
+    setImportResult({ success: totalSuccess, errors: payload.length - totalSuccess, message: lastError });
+    setImportProgress(null);
     setImporting(false);
   };
 
@@ -371,7 +386,11 @@ export default function ImportTeachersPage() {
                 disabled={validCount === 0 || importing}
                 onClick={handleImport}
               >
-                {importing ? 'Đang import...' : 'Xác nhận import'}
+                {importing
+                  ? importProgress
+                    ? `Đang import... ${importProgress.done}/${importProgress.total}`
+                    : 'Đang import...'
+                  : 'Xác nhận import'}
               </Button>
             </div>
           </Card>
