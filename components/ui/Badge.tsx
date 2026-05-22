@@ -11,13 +11,13 @@ export default function Badge({ variant = 'secondary', size = 'md', children }: 
     success: 'bg-success/10 text-success',
     warning: 'bg-warning/10 text-warning',
     danger: 'bg-crimson/10 text-crimson',
-    secondary: 'bg-bgLight text-textSecondary',
+    secondary: 'bg-bg-light text-text-secondary',
     primary: 'bg-primary/10 text-primary',
   };
 
   const sizeStyles = {
-    sm: 'px-1.5 py-0.5 text-10',
-    md: 'px-2 py-1 text-12',
+    sm: 'px-1.5 py-0.5 text-xs',
+    md: 'px-2 py-1 text-xs font-medium',
   };
 
   return (

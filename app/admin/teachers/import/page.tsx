@@ -182,11 +182,13 @@ export default function ImportTeachersPage() {
       const workbook = XLSX.read(data, { type: 'array' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json<TeacherRow>(worksheet, { defval: '' });
+      const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '' });
 
-      // For validation, we allow all subject codes since we don't have a subjects table
       const validated = jsonData.map((row) => {
-        return validateRow(row);
+        const normalized = Object.fromEntries(
+          Object.entries(row).map(([k, v]) => [k, String(v ?? '')])
+        ) as unknown as TeacherRow;
+        return validateRow(normalized);
       });
 
       setParsedData(validated);
@@ -235,14 +237,14 @@ export default function ImportTeachersPage() {
     return (
       <div>
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-28 font-bold">Import giáo viên</h1>
+          <h1 className="text-xl font-bold text-text-primary">Import giáo viên</h1>
         </div>
 
         <Card>
           <div className="text-center py-8">
             <div className="text-success text-5xl mb-4">✓</div>
             <h2 className="text-xl font-bold mb-2">Import thành công!</h2>
-            <p className="text-textSecondary mb-6">
+            <p className="text-text-secondary mb-6">
               Đã import <strong>{importResult.success}</strong> giáo viên thành công
               {importResult.errors > 0 && (
                 <span className="text-crimson"> ({importResult.errors} dòng lỗi)</span>
@@ -260,7 +262,7 @@ export default function ImportTeachersPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-28 font-bold">Import giáo viên</h1>
+        <h1 className="text-xl font-bold text-text-primary">Import giáo viên</h1>
         <Button variant="secondary" className="w-auto" onClick={() => router.push('/admin/teachers')}>
           ← Quay về
         </Button>
@@ -268,22 +270,22 @@ export default function ImportTeachersPage() {
 
       {/* Step Indicator */}
       <div className="flex items-center gap-4 mb-6">
-        <div className={`flex items-center gap-2 ${step >= 1 ? 'text-primary' : 'text-textSecondary'}`}>
-          <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${step >= 1 ? 'bg-primary text-white' : 'bg-border text-textSecondary'}`}>
+        <div className={`flex items-center gap-2 ${step >= 1 ? 'text-primary' : 'text-text-secondary'}`}>
+          <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${step >= 1 ? 'bg-primary text-white' : 'bg-border text-text-secondary'}`}>
             1
           </span>
           <span className="text-sm font-medium">Tải file mẫu</span>
         </div>
         <div className="w-8 h-px bg-border" />
-        <div className={`flex items-center gap-2 ${step >= 2 ? 'text-primary' : 'text-textSecondary'}`}>
-          <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${step >= 2 ? 'bg-primary text-white' : 'bg-border text-textSecondary'}`}>
+        <div className={`flex items-center gap-2 ${step >= 2 ? 'text-primary' : 'text-text-secondary'}`}>
+          <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${step >= 2 ? 'bg-primary text-white' : 'bg-border text-text-secondary'}`}>
             2
           </span>
           <span className="text-sm font-medium">Upload file</span>
         </div>
         <div className="w-8 h-px bg-border" />
-        <div className={`flex items-center gap-2 ${step >= 3 ? 'text-primary' : 'text-textSecondary'}`}>
-          <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${step >= 3 ? 'bg-primary text-white' : 'bg-border text-textSecondary'}`}>
+        <div className={`flex items-center gap-2 ${step >= 3 ? 'text-primary' : 'text-text-secondary'}`}>
+          <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${step >= 3 ? 'bg-primary text-white' : 'bg-border text-text-secondary'}`}>
             3
           </span>
           <span className="text-sm font-medium">Xem trước & xác nhận</span>
@@ -296,7 +298,7 @@ export default function ImportTeachersPage() {
           <div className="text-center py-8">
             <div className="text-5xl mb-4">📄</div>
             <h2 className="text-xl font-bold mb-2">Tải file mẫu</h2>
-            <p className="text-textSecondary mb-6">
+            <p className="text-text-secondary mb-6">
               Tải file mẫu Excel để điền thông tin giáo viên theo đúng định dạng
             </p>
             <Button variant="primary" onClick={downloadTemplate}>
@@ -306,7 +308,7 @@ export default function ImportTeachersPage() {
 
           <div className="mt-6 pt-6 border-t border-border">
             <h3 className="font-semibold mb-2">Cấu trúc file mẫu:</h3>
-            <div className="text-sm text-textSecondary">
+            <div className="text-sm text-text-secondary">
               <p><strong>Họ tên:</strong> Họ và tên đầy đủ</p>
               <p><strong>Loại GV:</strong> Loại giáo viên (chuyen_chinh / chuyen_phu / bo_mon / chu_nhiem)</p>
               <p><strong>Môn dạy:</strong> Tên môn dạy (VD: Toán, Vật lý) - hệ thống tự sinh mã môn</p>
@@ -314,7 +316,7 @@ export default function ImportTeachersPage() {
             </div>
           </div>
 
-          <div className="mt-4 text-sm text-textSecondary">
+          <div className="mt-4 text-sm text-text-secondary">
             <p className="font-semibold text-warning">Lưu ý quan trọng:</p>
             <p>• <strong>Mã môn tự động:</strong> Hệ thống tự sinh mã môn từ "Môn dạy". Xem sheet "Danh mục môn" để biết mã tương ứng.</p>
             <p>• <strong>1 giáo viên dạy nhiều lớp:</strong> Tạo nhiều dòng cùng Họ tên, mỗi dòng ghi 1 lớp khác nhau.</p>
@@ -335,7 +337,7 @@ export default function ImportTeachersPage() {
           <div className="text-center py-8">
             <div className="text-5xl mb-4">📤</div>
             <h2 className="text-xl font-bold mb-2">Upload file dữ liệu</h2>
-            <p className="text-textSecondary mb-6">
+            <p className="text-text-secondary mb-6">
               Chọn file Excel (.xlsx, .xls) hoặc CSV đã điền thông tin giáo viên
             </p>
             <input
@@ -375,14 +377,14 @@ export default function ImportTeachersPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary w-12">#</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Trạng thái</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Họ tên</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Loại</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Môn dạy</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Mã môn</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Lớp</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-textSecondary">Lỗi</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-text-secondary w-12">#</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-text-secondary">Trạng thái</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-text-secondary">Họ tên</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-text-secondary">Loại</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-text-secondary">Môn dạy</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-text-secondary">Mã môn</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-text-secondary">Lớp</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-text-secondary">Lỗi</th>
                   </tr>
                 </thead>
                 <tbody>

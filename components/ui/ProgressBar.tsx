@@ -30,7 +30,7 @@ export default function ProgressBar({
 }: ProgressBarProps) {
   return (
     <div className={`space-y-2 ${className}`}>
-      {showLabel && label && <div className="text-14 text-textSecondary">{label}</div>}
+      {showLabel && label && <div className="text-sm text-text-secondary">{label}</div>}
       <div className={`w-full bg-border rounded-full ${sizeStyles[size]}`}>
         <div
           className={`${variantStyles[variant]} ${sizeStyles[size]} rounded-full transition-all`}

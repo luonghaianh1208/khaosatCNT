@@ -3,9 +3,9 @@ import Button from '@/components/ui/Button';
 
 export default function SurveyCompletePage() {
   return (
-    <div className="min-h-screen bg-bgLight flex items-center justify-center px-4">
+    <div className="min-h-screen bg-bg-light flex items-center justify-center px-4">
       <div className="max-w-2xl mx-auto text-center">
-        <div className="bg-white rounded-card shadow-card p-12">
+        <div className="bg-white rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] p-12">
           {/* Success Icon */}
           <div className="mb-6">
             <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto">
@@ -27,17 +27,17 @@ export default function SurveyCompletePage() {
           </div>
 
           {/* Heading */}
-          <h1 className="text-28 font-bold text-textPrimary mb-4">
+          <h1 className="text-xl font-bold text-text-primary mb-4">
             Cảm ơn bạn!
           </h1>
 
           {/* Description */}
-          <p className="text-17 text-textSecondary mb-6">
+          <p className="text-base text-text-secondary mb-6">
             Phiếu khảo sát của bạn đã được ghi nhận. Nhà trường sẽ sử dụng kết quả này để cải thiện chất lượng giảng dạy.
           </p>
 
           {/* Privacy Reminder */}
-          <p className="text-14 text-textMuted mb-8">
+          <p className="text-sm text-text-muted mb-8">
             Khảo sát được thực hiện hoàn toàn ẩn danh. Thông tin của bạn sẽ không bị tiết lộ.
           </p>
 
