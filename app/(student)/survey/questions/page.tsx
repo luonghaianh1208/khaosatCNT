@@ -35,33 +35,36 @@ export default function QuestionsPage() {
   const [homeroomScores, setHomeroomScores] = useState<Record<number, number | null>>({});
   const [homeroomWantContinue, setHomeroomWantContinue] = useState<number | null>(null);
   const [openFeedback, setOpenFeedback] = useState('');
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [missingTeacherIds, setMissingTeacherIds] = useState<string[]>([]);
 
   // Calculate progress
   const calculateProgress = useCallback(() => {
     const isGrade12 = user?.grade === '12';
-    // Grade 12: 4 scored q per teacher + 4 homeroom scored q (no want_continue)
-    // Others:   5 q per teacher (4 scored + 1 yes/no) + 5 homeroom q (4 scored + 1 yes/no)
+    const disabledSubject = getDisabledSubjectForClass(user?.class_name || '');
+    const activeTeachers = subjectTeachers.filter(
+      (t) => !(disabledSubject && t.subject_code === disabledSubject)
+    );
     const questionsPerTeacher = isGrade12 ? 4 : 5;
     const homeroomTotal = isGrade12 ? 4 : 5;
-    const totalQuestions = subjectTeachers.length * questionsPerTeacher + homeroomTotal;
-    let answeredQuestions = 0;
+    const total = activeTeachers.length * questionsPerTeacher + homeroomTotal;
 
-    Object.values(subjectScores).forEach((teacherScores) => {
-      Object.values(teacherScores).forEach((score) => {
-        if (score !== null && score !== undefined) answeredQuestions++;
-      });
+    let answered = 0;
+    activeTeachers.forEach((teacher) => {
+      const ts = subjectScores[teacher.id] || {};
+      for (let i = 0; i < questionsPerTeacher; i++) {
+        if (ts[i] !== null && ts[i] !== undefined) answered++;
+      }
     });
+    for (let i = 0; i < 4; i++) {
+      if (homeroomScores[i] !== null && homeroomScores[i] !== undefined) answered++;
+    }
+    if (!isGrade12 && homeroomWantContinue !== null) answered++;
 
-    Object.values(homeroomScores).forEach((score) => {
-      if (score !== null && score !== undefined) answeredQuestions++;
-    });
+    return { answered, total, percent: total > 0 ? Math.round((answered / total) * 100) : 0 };
+  }, [subjectScores, homeroomScores, homeroomWantContinue, subjectTeachers, user]);
 
-    if (!isGrade12 && homeroomWantContinue !== null) answeredQuestions++;
-
-    return totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0;
-  }, [subjectScores, homeroomScores, homeroomWantContinue, subjectTeachers.length, user?.grade]);
-
-  const progress = calculateProgress();
+  const { answered: answeredCount, total: totalCount, percent: progress } = calculateProgress();
 
   // Fetch data
   useEffect(() => {
@@ -205,27 +208,55 @@ export default function QuestionsPage() {
     }));
   };
 
+  const getMissingSubjectTeachers = useCallback((): string[] => {
+    const disabledSubject = getDisabledSubjectForClass(user?.class_name || '');
+    const isGrade12 = user?.grade === '12';
+    const questionsCount = isGrade12 ? 4 : 5;
+    return subjectTeachers
+      .filter((teacher) => {
+        if (disabledSubject && teacher.subject_code === disabledSubject) return false;
+        const ts = subjectScores[teacher.id] || {};
+        for (let i = 0; i < questionsCount; i++) {
+          if (ts[i] === null || ts[i] === undefined) return true;
+        }
+        return false;
+      })
+      .map((t) => t.id);
+  }, [subjectTeachers, subjectScores, user]);
+
+  const getMissingHomeroomQuestions = useCallback((): number[] => {
+    const isGrade12 = user?.grade === '12';
+    const missing: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      if (homeroomScores[i] === null || homeroomScores[i] === undefined) missing.push(i);
+    }
+    if (!isGrade12 && homeroomWantContinue === null) missing.push(4);
+    return missing;
+  }, [homeroomScores, homeroomWantContinue, user]);
+
+  const handleContinueToHomeroom = () => {
+    setSubmitAttempted(true);
+    const missing = getMissingSubjectTeachers();
+    setMissingTeacherIds(missing);
+    if (missing.length > 0) {
+      setError('Vui lòng điền đầy đủ tất cả câu hỏi của mỗi giáo viên trước khi tiếp tục');
+      return;
+    }
+    setError(null);
+    setSubmitAttempted(false);
+    setMissingTeacherIds([]);
+    setCurrentPart('homeroom');
+  };
+
   const handleSubmit = async () => {
     if (!user || !sessionId) return;
 
-    // Validate: require at least one scored question filled (q1-q4)
-    let hasScore = false;
-    for (const teacher of subjectTeachers) {
-      const scores = subjectScores[teacher.id] || {};
-      for (let i = 0; i < 4; i++) {
-        if (scores[i] !== null && scores[i] !== undefined) {
-          hasScore = true;
-          break;
-        }
-      }
-      if (hasScore) break;
-    }
-    if (!hasScore) {
-      setError('Vui lòng điền ít nhất một điểm trước khi nộp');
-      setSubmitting(false);
+    setSubmitAttempted(true);
+    const missingHomeroom = getMissingHomeroomQuestions();
+    if (missingHomeroom.length > 0) {
+      setError('Vui lòng điền đầy đủ tất cả câu hỏi trước khi nộp');
       return;
     }
-
     setSubmitting(true);
     setError(null);
 
@@ -318,27 +349,30 @@ export default function QuestionsPage() {
   return (
     <div className="space-y-6">
       {/* Sticky Progress Bar */}
-      <div className="bg-white rounded-modal p-4 shadow-md sticky top-4 z-10">
+      <div className="bg-white rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-[#e8f0fb] sticky top-4 z-10">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-text-secondary">
+          <span className="text-sm text-text-secondary font-medium">
             {currentPart === 'subject' ? 'Phần I: Đánh giá giáo viên bộ môn' : 'Phần II: Đánh giá giáo viên chủ nhiệm'}
           </span>
-          <span className="text-sm font-medium text-primary">{progress}%</span>
+          <span className="text-sm font-bold text-primary">{progress}%</span>
         </div>
-        <div className="h-2 bg-bg-disabled rounded-full overflow-hidden">
+        <div className="h-2.5 bg-bg-disabled rounded-full overflow-hidden">
           <div
-            className="h-full bg-primary transition-all duration-300"
+            className="h-full bg-gradient-to-r from-blue-400 to-primary rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
+        </div>
+        <div className="text-right mt-1.5">
+          <span className="text-xs text-text-muted">{answeredCount} / {totalCount} câu đã điền</span>
         </div>
       </div>
 
       {/* Error message */}
       {error && (
-        <Card className="flex items-center gap-3 bg-crimson/10 border-crimson">
-          <AlertCircle className="w-5 h-5 text-crimson flex-shrink-0" />
-          <p className="text-crimson text-sm">{error}</p>
-        </Card>
+        <div className="flex items-center gap-3 bg-[#fff5f5] border border-[#dc3545] rounded-2xl p-4 animate-slide-up">
+          <AlertCircle className="w-5 h-5 text-[#dc3545] flex-shrink-0" />
+          <p className="text-[#dc3545] text-sm font-medium">{error}</p>
+        </div>
       )}
 
       {/* Part I: Subject Teachers */}
@@ -361,11 +395,13 @@ export default function QuestionsPage() {
               disabledTeachers={[]}
               userClassName={user?.class_name}
               grade={user?.grade}
+              submitAttempted={submitAttempted}
+              missingTeacherIds={missingTeacherIds}
             />
           )}
 
           <div className="flex justify-center mt-6">
-            <Button onClick={() => setCurrentPart('homeroom')}>
+            <Button onClick={handleContinueToHomeroom}>
               Tiếp tục Phần II
             </Button>
           </div>
@@ -388,6 +424,7 @@ export default function QuestionsPage() {
             onWantContinueChange={setHomeroomWantContinue}
             onFeedbackChange={setOpenFeedback}
             grade={user?.grade}
+            submitAttempted={submitAttempted}
           />
 
           <div className="flex justify-between mt-6">
