@@ -162,7 +162,7 @@ export default function SessionsPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-28 font-bold">Quản lý đợt khảo sát</h1>
+        <h1 className="text-xl font-bold text-text-primary">Quản lý đợt khảo sát</h1>
         <div className="flex gap-2">
           {selectedIds.size > 0 && (
             <Button
@@ -181,21 +181,21 @@ export default function SessionsPage() {
       </div>
 
       {fetchError && (
-        <div className="mb-4 bg-crimson/10 border border-crimson text-crimson px-4 py-3 rounded text-sm">
+        <div className="mb-4 bg-crimson/10 border border-crimson text-crimson px-4 py-3 rounded-xl text-sm">
           {fetchError}
         </div>
       )}
 
       <Card>
         {loading ? (
-          <div className="text-center py-8 text-textSecondary">Đang tải...</div>
+          <div className="text-center py-8 text-text-secondary">Đang tải...</div>
         ) : sessions.length === 0 ? (
-          <div className="text-center py-8 text-textSecondary">
+          <div className="text-center py-8 text-text-secondary">
             <div className="mb-2">Chưa có đợt khảo sát nào</div>
             <p className="text-sm">Nhấn "+ Tạo mới" để bắt đầu</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
+          <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-bg-light">
@@ -207,11 +207,11 @@ export default function SessionsPage() {
                       onChange={toggleSelectAll}
                     />
                   </th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Tên đợt khảo sát</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Năm học</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Thời hạn</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Trạng thái</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Thao tác</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Tên đợt khảo sát</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Năm học</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Thời hạn</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Trạng thái</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -232,7 +232,7 @@ export default function SessionsPage() {
                     <td className="py-3 px-4">
                       <div className="font-medium">{session.name}</div>
                       {session.description && (
-                        <div className="text-xs text-textSecondary mt-1">{session.description}</div>
+                        <div className="text-xs text-text-secondary mt-1">{session.description}</div>
                       )}
                     </td>
                     <td className="py-3 px-4">{session.school_year}</td>
@@ -288,7 +288,7 @@ export default function SessionsPage() {
       >
         <div className="space-y-4">
           {error && (
-            <div className="bg-crimson/10 border border-crimson text-crimson px-4 py-2 rounded text-sm">
+            <div className="bg-crimson/10 border border-crimson text-crimson px-4 py-2 rounded-xl text-sm">
               {error}
             </div>
           )}
@@ -331,9 +331,9 @@ export default function SessionsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-textPrimary mb-1">Mô tả (tùy chọn)</label>
+            <label className="block text-sm font-medium text-text-primary mb-1">Mô tả (tùy chọn)</label>
             <textarea
-              className="w-full px-3 py-2 text-sm font-sans border border-border rounded-button bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 text-sm font-sans border border-border rounded-xl bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
               rows={3}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}

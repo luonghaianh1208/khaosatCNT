@@ -228,7 +228,7 @@ export default function StudentsPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-28 font-bold">Quản lý học sinh</h1>
+        <h1 className="text-xl font-bold text-text-primary">Quản lý học sinh</h1>
         <div className="flex gap-2">
           {selectedIds.size > 0 && (
             <Button
@@ -263,7 +263,7 @@ export default function StudentsPage() {
             className="w-80"
           />
           <select
-            className="px-3 py-2 text-sm font-sans border border-border rounded-button bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            className="px-3 py-2 text-sm font-sans border border-border rounded-xl bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
             value={gradeFilter}
             onChange={(e) => setGradeFilter(e.target.value)}
           >
@@ -276,7 +276,7 @@ export default function StudentsPage() {
       </Card>
 
       {fetchError && (
-        <div className="mb-4 bg-crimson/10 border border-crimson text-crimson px-4 py-3 rounded text-sm">
+        <div className="mb-4 bg-crimson/10 border border-crimson text-crimson px-4 py-3 rounded-xl text-sm">
           {fetchError}
         </div>
       )}
@@ -284,14 +284,14 @@ export default function StudentsPage() {
       {/* Table */}
       <Card>
         {loading ? (
-          <div className="text-center py-8 text-textSecondary">Đang tải...</div>
+          <div className="text-center py-8 text-text-secondary">Đang tải...</div>
         ) : students.length === 0 ? (
-          <div className="text-center py-8 text-textSecondary">
+          <div className="text-center py-8 text-text-secondary">
             <div className="mb-2">Chưa có học sinh nào</div>
             <p className="text-sm">Nhấn "+ Thêm mới" hoặc "Import" để bắt đầu</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
+          <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-bg-light">
@@ -303,12 +303,12 @@ export default function StudentsPage() {
                       onChange={toggleSelectAll}
                     />
                   </th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Username</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Họ tên</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Khối</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Lớp</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Trạng thái</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Thao tác</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Username</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Họ tên</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Khối</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Lớp</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Trạng thái</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -371,7 +371,7 @@ export default function StudentsPage() {
       >
         <div className="space-y-4">
           {addError && (
-            <div className="bg-crimson/10 border border-crimson text-crimson px-4 py-2 rounded text-sm">
+            <div className="bg-crimson/10 border border-crimson text-crimson px-4 py-2 rounded-xl text-sm">
               {addError}
             </div>
           )}
@@ -402,9 +402,9 @@ export default function StudentsPage() {
           />
 
           <div>
-            <label className="block text-sm font-medium text-textPrimary mb-1">Giới tính</label>
+            <label className="block text-sm font-medium text-text-primary mb-1">Giới tính</label>
             <select
-              className="w-full px-3 py-2 text-sm font-sans border border-border rounded-button bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 text-sm font-sans border border-border rounded-xl bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
               value={newStudent.gender}
               onChange={(e) => setNewStudent({ ...newStudent, gender: e.target.value })}
               disabled={adding}
@@ -417,9 +417,9 @@ export default function StudentsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-textPrimary mb-1">Khối</label>
+              <label className="block text-sm font-medium text-text-primary mb-1">Khối</label>
               <select
-                className="w-full px-3 py-2 text-sm font-sans border border-border rounded-button bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 text-sm font-sans border border-border rounded-xl bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
                 value={newStudent.grade}
                 onChange={(e) => setNewStudent({ ...newStudent, grade: e.target.value })}
                 disabled={adding}
@@ -468,7 +468,7 @@ export default function StudentsPage() {
       >
         <div className="space-y-4">
           {addError && (
-            <div className="bg-crimson/10 border border-crimson text-crimson px-4 py-2 rounded text-sm">
+            <div className="bg-crimson/10 border border-crimson text-crimson px-4 py-2 rounded-xl text-sm">
               {addError}
             </div>
           )}
@@ -490,9 +490,9 @@ export default function StudentsPage() {
           />
 
           <div>
-            <label className="block text-sm font-medium text-textPrimary mb-1">Giới tính</label>
+            <label className="block text-sm font-medium text-text-primary mb-1">Giới tính</label>
             <select
-              className="w-full px-3 py-2 text-sm font-sans border border-border rounded-button bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 text-sm font-sans border border-border rounded-xl bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
               value={editForm.gender}
               onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
               disabled={adding}
@@ -505,9 +505,9 @@ export default function StudentsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-textPrimary mb-1">Khối</label>
+              <label className="block text-sm font-medium text-text-primary mb-1">Khối</label>
               <select
-                className="w-full px-3 py-2 text-sm font-sans border border-border rounded-button bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 text-sm font-sans border border-border rounded-xl bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
                 value={editForm.grade}
                 onChange={(e) => setEditForm({ ...editForm, grade: e.target.value })}
                 disabled={adding}
@@ -529,9 +529,9 @@ export default function StudentsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-textPrimary mb-1">Trạng thái</label>
+            <label className="block text-sm font-medium text-text-primary mb-1">Trạng thái</label>
             <select
-              className="w-full px-3 py-2 text-sm font-sans border border-border rounded-button bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 text-sm font-sans border border-border rounded-xl bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
               value={editForm.is_active ? 'true' : 'false'}
               onChange={(e) => setEditForm({ ...editForm, is_active: e.target.value === 'true' })}
               disabled={adding}

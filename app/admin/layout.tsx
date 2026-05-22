@@ -45,7 +45,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </main>
 
       {/* Mobile Header */}
-      <div className="fixed top-0 left-0 right-0 lg:hidden bg-primary text-white p-4 z-40 flex items-center justify-between">
+      <div className="fixed top-0 left-0 right-0 lg:hidden bg-primary text-white p-4 z-40 flex items-center justify-between shadow-md">
         <span className="font-semibold">Quản trị</span>
         <button
           onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }}

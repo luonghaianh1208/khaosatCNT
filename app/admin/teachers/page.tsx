@@ -199,7 +199,7 @@ export default function TeachersPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-28 font-bold">Quản lý giáo viên</h1>
+        <h1 className="text-xl font-bold text-text-primary">Quản lý giáo viên</h1>
         <div className="flex gap-2">
           {selectedIds.size > 0 && (
             <Button
@@ -225,7 +225,7 @@ export default function TeachersPage() {
       </div>
 
       {fetchError && (
-        <div className="mb-4 bg-crimson/10 border border-crimson text-crimson px-4 py-3 rounded text-sm">
+        <div className="mb-4 bg-crimson/10 border border-crimson text-crimson px-4 py-3 rounded-xl text-sm">
           {fetchError}
         </div>
       )}
@@ -238,10 +238,10 @@ export default function TeachersPage() {
             placeholder="Tìm kiếm theo tên..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="px-3 py-2 text-sm font-sans border border-border rounded-button bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary w-80"
+            className="px-3 py-2 text-sm font-sans border border-border rounded-xl bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary w-80"
           />
           <select
-            className="px-3 py-2 text-sm font-sans border border-border rounded-button bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            className="px-3 py-2 text-sm font-sans border border-border rounded-xl bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
           >
@@ -257,14 +257,14 @@ export default function TeachersPage() {
       {/* Table */}
       <Card>
         {loading ? (
-          <div className="text-center py-8 text-textSecondary">Đang tải...</div>
+          <div className="text-center py-8 text-text-secondary">Đang tải...</div>
         ) : teachers.length === 0 ? (
-          <div className="text-center py-8 text-textSecondary">
+          <div className="text-center py-8 text-text-secondary">
             <div className="mb-2">Chưa có giáo viên nào</div>
             <p className="text-sm">Nhấn "+ Thêm mới" hoặc "Import" để bắt đầu</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
+          <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-bg-light">
@@ -276,11 +276,11 @@ export default function TeachersPage() {
                       onChange={toggleSelectAll}
                     />
                   </th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Họ tên</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Loại</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Môn</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Lớp</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Thao tác</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Họ tên</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Loại</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Môn</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Lớp</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -306,7 +306,7 @@ export default function TeachersPage() {
                     </td>
                     <td className="py-3 px-4">
                       {teacher.subject || '-'}
-                      {teacher.subject_code && <span className="text-textSecondary text-xs ml-1">({teacher.subject_code})</span>}
+                      {teacher.subject_code && <span className="text-text-secondary text-xs ml-1">({teacher.subject_code})</span>}
                     </td>
                     <td className="py-3 px-4 text-sm">
                       {getClassesDisplay(teacher.teacher_class_assignments)}
@@ -358,7 +358,7 @@ export default function TeachersPage() {
       >
         <div className="space-y-4">
           {error && (
-            <div className="bg-crimson/10 border border-crimson text-crimson px-4 py-2 rounded text-sm">
+            <div className="bg-crimson/10 border border-crimson text-crimson px-4 py-2 rounded-xl text-sm">
               {error}
             </div>
           )}
@@ -373,9 +373,9 @@ export default function TeachersPage() {
           />
 
           <div>
-            <label className="block text-sm font-medium text-textPrimary mb-1">Loại giáo viên</label>
+            <label className="block text-sm font-medium text-text-primary mb-1">Loại giáo viên</label>
             <select
-              className="w-full px-3 py-2 text-sm font-sans border border-border rounded-button bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 text-sm font-sans border border-border rounded-xl bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
               value={formData.teacher_type}
               onChange={(e) => setFormData({ ...formData, teacher_type: e.target.value })}
               disabled={saving}
@@ -425,7 +425,7 @@ export default function TeachersPage() {
         title="Phân công lớp giảng dạy"
       >
         <div className="space-y-4">
-          <p className="text-sm text-textSecondary">
+          <p className="text-sm text-text-secondary">
             Đang phân công cho: <strong>{selectedTeacher?.full_name}</strong>
           </p>
 

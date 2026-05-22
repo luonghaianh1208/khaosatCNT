@@ -230,7 +230,7 @@ export default function ReportsPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-28 font-bold">Báo cáo & Thống kê</h1>
+        <h1 className="text-xl font-bold text-text-primary">Báo cáo & Thống kê</h1>
         <Button
           variant="primary"
           className="w-auto"
@@ -243,27 +243,27 @@ export default function ReportsPage() {
 
       <Card>
         {loading ? (
-          <div className="text-center py-8 text-textSecondary">Đang tải...</div>
+          <div className="text-center py-8 text-text-secondary">Đang tải...</div>
         ) : teacherStats.length === 0 ? (
-          <div className="text-center py-8 text-textSecondary">
+          <div className="text-center py-8 text-text-secondary">
             <div className="mb-2">Chưa có dữ liệu khảo sát</div>
             <p className="text-sm">Vui lòng kiểm tra đợt khảo sát đang hoạt động</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
+          <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-bg-light">
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Giáo viên</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Môn</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-textSecondary">Lớp</th>
-                  <th className="text-right py-4 px-4 text-sm font-semibold text-textSecondary">TB Câu 1</th>
-                  <th className="text-right py-4 px-4 text-sm font-semibold text-textSecondary">TB Câu 2</th>
-                  <th className="text-right py-4 px-4 text-sm font-semibold text-textSecondary">TB Câu 3</th>
-                  <th className="text-right py-4 px-4 text-sm font-semibold text-textSecondary">TB Câu 4</th>
-                  <th className="text-right py-4 px-4 text-sm font-semibold text-textSecondary">TB Câu 5</th>
-                  <th className="text-right py-4 px-4 text-sm font-semibold text-textPrimary font-bold">TB Chung</th>
-                  <th className="text-right py-4 px-4 text-sm font-semibold text-textSecondary">Số HS</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Giáo viên</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Môn</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-text-secondary">Lớp</th>
+                  <th className="text-right py-4 px-4 text-sm font-semibold text-text-secondary">TB Câu 1</th>
+                  <th className="text-right py-4 px-4 text-sm font-semibold text-text-secondary">TB Câu 2</th>
+                  <th className="text-right py-4 px-4 text-sm font-semibold text-text-secondary">TB Câu 3</th>
+                  <th className="text-right py-4 px-4 text-sm font-semibold text-text-secondary">TB Câu 4</th>
+                  <th className="text-right py-4 px-4 text-sm font-semibold text-text-secondary">TB Câu 5</th>
+                  <th className="text-right py-4 px-4 text-sm font-semibold text-text-primary font-bold">TB Chung</th>
+                  <th className="text-right py-4 px-4 text-sm font-semibold text-text-secondary">Số HS</th>
                 </tr>
               </thead>
               <tbody>
@@ -291,21 +291,21 @@ export default function ReportsPage() {
       {!loading && teacherStats.length > 0 && (
         <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
-            <div className="text-textSecondary text-sm">Tổng số giáo viên</div>
+            <div className="text-text-secondary text-sm">Tổng số giáo viên</div>
             <div className="text-2xl font-bold text-primary">{teacherStats.length}</div>
           </Card>
           <Card>
-            <div className="text-textSecondary text-sm">Tổng số HS tham gia</div>
+            <div className="text-text-secondary text-sm">Tổng số HS tham gia</div>
             <div className="text-2xl font-bold text-primary">{students.length}</div>
           </Card>
           <Card>
-            <div className="text-textSecondary text-sm">Điểm TB chung</div>
+            <div className="text-text-secondary text-sm">Điểm TB chung</div>
             <div className="text-2xl font-bold text-success">
               {(teacherStats.reduce((sum, t) => sum + t.total_avg, 0) / teacherStats.length).toFixed(2)}
             </div>
           </Card>
           <Card>
-            <div className="text-textSecondary text-sm">Số câu hỏi mở</div>
+            <div className="text-text-secondary text-sm">Số câu hỏi mở</div>
             <div className="text-2xl font-bold text-primary">{openFeedbacks.length}</div>
           </Card>
         </div>

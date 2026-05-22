@@ -54,18 +54,18 @@ export default function AdminDashboard() {
   return (
     <div>
       {fetchError && (
-        <div className="mb-6 bg-crimson/10 border border-crimson text-crimson px-4 py-3 rounded text-sm">
+        <div className="mb-6 bg-crimson/10 border border-[#dc3545] text-crimson px-4 py-3 rounded-xl text-sm">
           {fetchError}
         </div>
       )}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-28 font-bold text-textPrimary mb-2">Dashboard</h1>
-          <p className="text-16 text-textSecondary">Tổng quan về đợt khảo sát hiện tại</p>
+          <h1 className="text-xl font-bold text-text-primary mb-1">Dashboard</h1>
+          <p className="text-sm text-text-secondary">Tổng quan về đợt khảo sát hiện tại</p>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <span className={`inline-block w-2 h-2 rounded-full ${isLive ? 'bg-success animate-pulse' : 'bg-border'}`} />
-          <span className={isLive ? 'text-success font-medium' : 'text-textSecondary'}>
+          <span className={isLive ? 'text-success font-medium' : 'text-text-secondary'}>
             {isLive ? 'Live' : 'Đang kết nối...'}
           </span>
         </div>
@@ -75,10 +75,10 @@ export default function AdminDashboard() {
         <Card hoverable className="border-l-4 border-l-primary">
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-12 text-textSecondary mb-1">Tổng số học sinh</div>
-              <div className="text-28 font-bold text-textPrimary">{totalStudents}</div>
+              <div className="text-xs text-text-secondary mb-1">Tổng số học sinh</div>
+              <div className="text-xl font-bold text-text-primary">{totalStudents}</div>
             </div>
-            <div className="p-3 bg-primary/10 rounded-lg">
+            <div className="p-3 bg-primary/10 rounded-xl">
               <Users className="w-6 h-6 text-primary" />
             </div>
           </div>
@@ -86,10 +86,10 @@ export default function AdminDashboard() {
         <Card hoverable className="border-l-4 border-l-secondary-nav">
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-12 text-textSecondary mb-1">Tổng số giáo viên</div>
-              <div className="text-28 font-bold text-textPrimary">{totalTeachers}</div>
+              <div className="text-xs text-text-secondary mb-1">Tổng số giáo viên</div>
+              <div className="text-xl font-bold text-text-primary">{totalTeachers}</div>
             </div>
-            <div className="p-3 bg-secondary-nav/10 rounded-lg">
+            <div className="p-3 bg-secondary-nav/10 rounded-xl">
               <GraduationCap className="w-6 h-6 text-secondary-nav" />
             </div>
           </div>
@@ -97,10 +97,10 @@ export default function AdminDashboard() {
         <Card hoverable className="border-l-4 border-l-warning">
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-12 text-textSecondary mb-1">Điểm TB toàn trường</div>
-              <div className="text-28 font-bold text-textPrimary">{avgScore}</div>
+              <div className="text-xs text-text-secondary mb-1">Điểm TB toàn trường</div>
+              <div className="text-xl font-bold text-text-primary">{avgScore}</div>
             </div>
-            <div className="p-3 bg-warning/10 rounded-lg">
+            <div className="p-3 bg-warning/10 rounded-xl">
               <Target className="w-6 h-6 text-warning" />
             </div>
           </div>
@@ -108,10 +108,10 @@ export default function AdminDashboard() {
         <Card hoverable className="border-l-4 border-l-success">
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-12 text-textSecondary mb-1">Hoàn thành khảo sát</div>
-              <div className="text-28 font-bold text-success">{completionPercentage}%</div>
+              <div className="text-xs text-text-secondary mb-1">Hoàn thành khảo sát</div>
+              <div className="text-xl font-bold text-success">{completionPercentage}%</div>
             </div>
-            <div className="p-3 bg-success/10 rounded-lg">
+            <div className="p-3 bg-success/10 rounded-xl">
               <CheckCircle className="w-6 h-6 text-success" />
             </div>
           </div>
@@ -120,25 +120,21 @@ export default function AdminDashboard() {
 
       <Card>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-20 font-bold text-textPrimary">Tiến độ khảo sát</h2>
-          <div className="flex items-center gap-2 text-14 text-textSecondary">
+          <h2 className="text-lg font-bold text-text-primary">Tiến độ khảo sát</h2>
+          <div className="flex items-center gap-2 text-sm text-text-secondary">
             <TrendingUp className="w-4 h-4" />
-            <span>{submittedStudents} / {totalStudents} học sinh</span>
+            <span>{submittedStudents} / {totalStudents} học sinh đã nộp</span>
           </div>
         </div>
-        <ProgressBar
-          value={completionPercentage}
-          size="lg"
-          variant="success"
-          showLabel={false}
-          className="mb-3"
-        />
-        <ProgressBar
-          value={completionPercentage}
-          label={`${submittedStudents} / ${totalStudents} học sinh đã nộp`}
-          size="sm"
-          variant="primary"
-        />
+        <div className="h-3 bg-bg-disabled rounded-full overflow-hidden mb-2">
+          <div
+            className="h-full bg-gradient-to-r from-blue-400 to-primary rounded-full transition-all duration-500"
+            style={{ width: `${completionPercentage}%` }}
+          />
+        </div>
+        <div className="text-right">
+          <span className="text-xs text-text-muted">{completionPercentage}% hoàn thành</span>
+        </div>
       </Card>
     </div>
   );

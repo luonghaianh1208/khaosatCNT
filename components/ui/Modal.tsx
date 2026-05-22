@@ -49,14 +49,14 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', s
       />
 
       {/* Modal */}
-      <div className={`relative bg-white rounded-modal shadow-lg ${sizeStyles[size]} w-full mx-4 max-h-[90vh] overflow-y-auto animate-scale-in`}>
+      <div className={`relative bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] ${sizeStyles[size]} w-full mx-4 max-h-[90vh] overflow-y-auto animate-scale-in`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="text-lg font-semibold text-textPrimary">{title}</h2>
+        <div className="flex items-center justify-between p-5 border-b border-[#e8f0fb]">
+          <h2 className="text-base font-semibold text-text-primary">{title}</h2>
           {showCloseButton && (
             <button
               onClick={onClose}
-              className="p-1 hover:bg-bgLight rounded text-textSecondary hover:text-textPrimary transition-colors"
+              className="p-1 hover:bg-bg-light rounded-lg text-text-secondary hover:text-text-primary transition-colors"
               aria-label="Đóng"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,7 +67,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', s
         </div>
 
         {/* Body */}
-        <div className="p-4">
+        <div className="p-5">
           {children}
         </div>
       </div>
