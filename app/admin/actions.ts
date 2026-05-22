@@ -248,6 +248,21 @@ export async function setActiveSession(id: string) {
     .update({ is_active: true })
     .eq('id', id);
   if (error) throw new Error(error.message);
+
+  // Auto-populate assignments from teachers.classes
+  const { data: teachers } = await client
+    .from('teachers')
+    .select('id, classes')
+    .not('classes', 'eq', '{}');
+
+  for (const teacher of teachers || []) {
+    for (const className of (teacher.classes || [])) {
+      await client.from('teacher_class_assignments').upsert(
+        { teacher_id: teacher.id, survey_session_id: id, class_name: className },
+        { onConflict: 'teacher_id,survey_session_id,class_name' }
+      );
+    }
+  }
 }
 
 export async function toggleSessionActive(id: string, isActive: boolean) {
@@ -409,6 +424,7 @@ export async function importTeachers(teacherMap: {
           teacher_type: t.teacher_type,
           subject: t.subject || null,
           subject_code: t.subject_code || null,
+          classes: t.classes,
         },
         { onConflict: 'full_name' }
       )
@@ -439,7 +455,7 @@ export async function importTeachers(teacherMap: {
     successCount++;
   }
 
-  return { success: successCount, message: lastError, noSession: !activeSession };
+  return { success: successCount, message: lastError };
 }
 
 // ─── Reports ─────────────────────────────────────────────────────────────────

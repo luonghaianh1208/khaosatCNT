@@ -106,7 +106,7 @@ export default function ImportTeachersPage() {
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ValidatedRow[]>([]);
   const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<{ success: number; errors: number; message?: string | null; noSession?: boolean } | null>(null);
+  const [importResult, setImportResult] = useState<{ success: number; errors: number; message?: string | null } | null>(null);
 
   const validCount = parsedData.filter((r) => r.isValid).length;
   const errorCount = parsedData.filter((r) => !r.isValid).length;
@@ -219,7 +219,7 @@ export default function ImportTeachersPage() {
     }));
 
     const result = await importTeachers(payload);
-    setImportResult({ success: result.success, errors: validRows.length - result.success, message: result.message ?? null, noSession: result.noSession ?? false });
+    setImportResult({ success: result.success, errors: validRows.length - result.success, message: result.message ?? null });
     setImporting(false);
   };
 
@@ -250,12 +250,7 @@ export default function ImportTeachersPage() {
                 <span className="text-crimson"> ({importResult.errors} dòng lỗi)</span>
               )}
             </p>
-            {importResult.noSession && (
-              <p className="text-xs text-warning mb-4 bg-warning/5 border border-warning/20 rounded-xl px-4 py-2 max-w-md mx-auto">
-                Chưa có đợt khảo sát đang hoạt động — giáo viên đã được tạo nhưng chưa phân công lớp. Tạo đợt khảo sát và phân công lớp thủ công sau.
-              </p>
-            )}
-            {importResult.message && !importResult.noSession && (
+            {importResult.message && (
               <p className="text-xs text-crimson mb-4 bg-crimson/5 border border-crimson/20 rounded-xl px-4 py-2 max-w-md mx-auto">
                 {importResult.message}
               </p>
