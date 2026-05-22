@@ -74,7 +74,7 @@ export default function SurveyGrid({
         setCurrentIndex(idx);
       }
     }
-  }, [missingTeacherIds]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [missingTeacherIds, teachers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const goNext = () => {
     setDirection('left');
