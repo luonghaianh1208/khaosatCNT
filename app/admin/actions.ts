@@ -390,8 +390,9 @@ export async function importTeachers(teacherMap: {
   subject_code: string;
   classes: string[];
 }[]) {
-  const client = createAdminClient();
+  const client = createServiceRoleClient();
   let successCount = 0;
+  let lastError: string | null = null;
 
   const { data: activeSession } = await client
     .from('survey_sessions')
@@ -414,24 +415,33 @@ export async function importTeachers(teacherMap: {
       .select()
       .single();
 
-    if (teacherError || !teacher) continue;
+    if (teacherError || !teacher) {
+      lastError = teacherError?.message ?? 'Không thể tạo giáo viên';
+      continue;
+    }
 
     if (activeSession) {
       for (const className of t.classes) {
-        await client.from('teacher_class_assignments').upsert(
-          {
-            teacher_id: teacher.id,
-            survey_session_id: activeSession.id,
-            class_name: className,
-          },
-          { onConflict: 'teacher_id,survey_session_id,class_name' }
-        );
+        const { error: assignError } = await client
+          .from('teacher_class_assignments')
+          .upsert(
+            {
+              teacher_id: teacher.id,
+              survey_session_id: activeSession.id,
+              class_name: className,
+            },
+            { onConflict: 'teacher_id,survey_session_id,class_name' }
+          );
+        if (assignError) lastError = assignError.message;
       }
+    } else {
+      lastError = 'Không có đợt khảo sát đang hoạt động — giáo viên được tạo nhưng chưa phân công lớp';
     }
+
     successCount++;
   }
 
-  return { success: successCount };
+  return { success: successCount, message: lastError };
 }
 
 // ─── Reports ─────────────────────────────────────────────────────────────────

@@ -106,7 +106,7 @@ export default function ImportTeachersPage() {
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ValidatedRow[]>([]);
   const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<{ success: number; errors: number } | null>(null);
+  const [importResult, setImportResult] = useState<{ success: number; errors: number; message?: string | null } | null>(null);
 
   const validCount = parsedData.filter((r) => r.isValid).length;
   const errorCount = parsedData.filter((r) => !r.isValid).length;
@@ -219,7 +219,7 @@ export default function ImportTeachersPage() {
     }));
 
     const result = await importTeachers(payload);
-    setImportResult({ success: result.success, errors: validRows.length - result.success });
+    setImportResult({ success: result.success, errors: validRows.length - result.success, message: result.message ?? null });
     setImporting(false);
   };
 
@@ -244,12 +244,17 @@ export default function ImportTeachersPage() {
           <div className="text-center py-8">
             <div className="text-success text-5xl mb-4">✓</div>
             <h2 className="text-xl font-bold mb-2">Import thành công!</h2>
-            <p className="text-text-secondary mb-6">
+            <p className="text-text-secondary mb-2">
               Đã import <strong>{importResult.success}</strong> giáo viên thành công
               {importResult.errors > 0 && (
                 <span className="text-crimson"> ({importResult.errors} dòng lỗi)</span>
               )}
             </p>
+            {importResult.message && (
+              <p className="text-xs text-crimson mb-4 bg-crimson/5 border border-crimson/20 rounded-xl px-4 py-2 max-w-md mx-auto">
+                {importResult.message}
+              </p>
+            )}
             <Button variant="primary" onClick={() => router.push('/admin/teachers')}>
               Quay về danh sách
             </Button>
