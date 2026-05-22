@@ -37,6 +37,7 @@ export default function QuestionsPage() {
   const [openFeedback, setOpenFeedback] = useState('');
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [missingTeacherIds, setMissingTeacherIds] = useState<string[]>([]);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   // Calculate progress
   const calculateProgress = useCallback(() => {
@@ -203,6 +204,21 @@ export default function QuestionsPage() {
 
     fetchData();
   }, [router]);
+
+  const hasUnsavedData = Object.values(subjectScores).some((s) =>
+    Object.values(s).some((v) => v !== null && v !== undefined)
+  ) || Object.values(homeroomScores).some((v) => v !== null && v !== undefined);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedData) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedData]);
 
   const handleSubjectScoreChange = (teacherId: string, questionIndex: number, score: number) => {
     setSubjectScores((prev) => ({
@@ -413,7 +429,10 @@ export default function QuestionsPage() {
             />
           )}
 
-          <div className="flex justify-center mt-6">
+          <div className="flex justify-between mt-6">
+            <Button variant="secondary" onClick={() => hasUnsavedData ? setShowLeaveConfirm(true) : router.push('/survey')}>
+              ← Trang chủ
+            </Button>
             <Button onClick={handleContinueToHomeroom}>
               Tiếp tục Phần II
             </Button>
@@ -467,6 +486,27 @@ export default function QuestionsPage() {
             </Button>
           </div>
         </Card>
+      )}
+
+      {/* Leave confirmation dialog */}
+      {showLeaveConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full animate-scale-in">
+            <div className="text-3xl text-center mb-3">⚠️</div>
+            <h3 className="text-base font-bold text-text-primary text-center mb-2">Dữ liệu chưa được gửi</h3>
+            <p className="text-sm text-text-secondary text-center mb-6">
+              Bạn đã điền một số câu trả lời nhưng chưa nộp khảo sát. Nếu quay về, dữ liệu sẽ không được lưu.
+            </p>
+            <div className="flex gap-3">
+              <Button variant="secondary" className="flex-1" onClick={() => setShowLeaveConfirm(false)}>
+                Ở lại
+              </Button>
+              <Button variant="primary" className="flex-1" onClick={() => router.push('/survey')}>
+                Quay về
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
