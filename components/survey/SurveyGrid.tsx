@@ -17,20 +17,7 @@ interface SurveyGridProps {
   missingTeacherIds: string[];
 }
 
-export function getDisabledSubjectForClass(className: string): string | null {
-  if (!className) return null;
-  const match = className.match(/^\d+\s+(.+)$/);
-  if (!match) return null;
-  const classLabel = match[1].toLowerCase();
-  if (classLabel.includes('toán')) return 'toan';
-  if (classLabel.includes('lý')) return 'ly';
-  if (classLabel.includes('hóa')) return 'hoa';
-  if (classLabel.includes('sinh')) return 'sinh';
-  if (classLabel.includes('văn')) return 'van';
-  if (classLabel.includes('sử')) return 'su';
-  if (classLabel.includes('địa')) return 'dia';
-  if (classLabel.includes('anh')) return 'anh';
-  if (classLabel.includes('tin')) return 'tin';
+export function getDisabledSubjectForClass(_className: string): string | null {
   return null;
 }
 
@@ -60,10 +47,7 @@ export default function SurveyGrid({
   const isGrade12 = grade === '12';
   const visibleQuestions = isGrade12 ? QUESTIONS.slice(0, -1) : QUESTIONS;
 
-  const isTeacherDisabled = (teacher: Teacher): boolean => {
-    if (disabledTeachers.includes(teacher.id)) return true;
-    // Chỉ disable GV bộ môn trùng môn chuyên của lớp — GV chuyên vẫn đánh giá bình thường
-    if (disabledSubject && teacher.subject_code === disabledSubject && teacher.teacher_type === 'bo_mon') return true;
+  const isTeacherDisabled = (_teacher: Teacher): boolean => {
     return false;
   };
 
