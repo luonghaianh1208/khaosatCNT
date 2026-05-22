@@ -1,6 +1,7 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/server-action-client';
+import { createServiceRoleClient } from '@/lib/supabase/service-role';
 
 // ─── Students ───────────────────────────────────────────────────────────────
 
@@ -315,23 +316,33 @@ export async function importStudents(rows: {
   class_name: string;
   password: string;
 }[]) {
-  const client = createAdminClient();
-  let successCount = 0;
+  const client = createServiceRoleClient();
   let errorCount = 0;
+
+  const userRows: {
+    username: string;
+    full_name: string;
+    date_of_birth: string;
+    gender: string;
+    grade: string;
+    class_name: string;
+    auth_user_id: string | null;
+  }[] = [];
 
   for (const row of rows) {
     const email = `${row.username}@khaosat.ngt.edu.vn`;
     try {
       let authUserId: string | null = null;
 
-      const { data: signUpData, error: signUpError } = await client.auth.signUp({
+      const { data, error } = await client.auth.admin.createUser({
         email,
         password: row.password,
-        options: { data: { role: 'student' } },
+        email_confirm: true,
+        user_metadata: { role: 'student' },
       });
 
-      if (signUpError) {
-        // User might already exist — look up by username in users table
+      if (error) {
+        // User already exists — look up auth_user_id by username
         const { data: existing } = await client
           .from('users')
           .select('auth_user_id')
@@ -339,28 +350,35 @@ export async function importStudents(rows: {
           .single();
         authUserId = existing?.auth_user_id ?? null;
       } else {
-        authUserId = signUpData.user?.id ?? null;
+        authUserId = data.user?.id ?? null;
       }
 
-      await client.from('users').upsert(
-        {
-          username: row.username,
-          full_name: row.full_name,
-          date_of_birth: row.date_of_birth,
-          gender: row.gender,
-          grade: row.grade,
-          class_name: row.class_name,
-          auth_user_id: authUserId,
-        },
-        { onConflict: 'username' }
-      );
-      successCount++;
+      userRows.push({
+        username: row.username,
+        full_name: row.full_name,
+        date_of_birth: row.date_of_birth,
+        gender: row.gender,
+        grade: row.grade,
+        class_name: row.class_name,
+        auth_user_id: authUserId,
+      });
     } catch {
       errorCount++;
     }
   }
 
-  return { success: successCount, errors: errorCount };
+  // Batch upsert all rows in one DB call
+  if (userRows.length > 0) {
+    const { error } = await client
+      .from('users')
+      .upsert(userRows, { onConflict: 'username' });
+    if (error) {
+      errorCount += userRows.length;
+      return { success: 0, errors: errorCount };
+    }
+  }
+
+  return { success: userRows.length, errors: errorCount };
 }
 
 export async function importTeachers(teacherMap: {
