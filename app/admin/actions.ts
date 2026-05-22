@@ -459,7 +459,7 @@ export async function importTeachers(teacherMap: {
           subject_code: t.subject_code || null,
           classes: normalizedClasses,
         },
-        { onConflict: 'full_name,teacher_type' }
+        { onConflict: 'full_name,subject_code' }
       )
       .select()
       .single();
@@ -508,8 +508,8 @@ export async function importHomeroom(rows: { class_name: string; full_name: stri
     const { data: teacher, error: teacherError } = await client
       .from('teachers')
       .upsert(
-        { full_name: row.full_name, teacher_type: 'chu_nhiem', subject: null, subject_code: null, classes: [className] },
-        { onConflict: 'full_name,teacher_type' }
+        { full_name: row.full_name, teacher_type: 'chu_nhiem', subject: null, subject_code: 'gvcn', classes: [className] },
+        { onConflict: 'full_name,subject_code' }
       )
       .select()
       .single();
