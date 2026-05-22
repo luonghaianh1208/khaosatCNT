@@ -3,6 +3,9 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Hệ thống Khảo sát THPT Chuyên Nguyễn Trãi',
+  icons: {
+    icon: '/cnt-logo.png',
+  },
 }
 
 export default function RootLayout({

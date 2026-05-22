@@ -50,8 +50,8 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-[400px] px-4">
       <div className="text-center mb-8">
-        <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary flex items-center justify-center">
-          <span className="text-white text-2xl font-bold">CN</span>
+        <div className="w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden flex items-center justify-center">
+          <img src="/cnt-logo.png" alt="CNT Logo" className="w-full h-full object-contain" />
         </div>
         <h1 className="text-xl font-sans font-normal text-text-primary">
           THPT Chuyên Nguyễn Trãi

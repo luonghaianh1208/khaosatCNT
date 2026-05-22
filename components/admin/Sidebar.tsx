@@ -8,7 +8,6 @@ import {
   Users,
   GraduationCap,
   BarChart3,
-  School,
 } from 'lucide-react';
 
 const navItems = [
@@ -27,8 +26,8 @@ export default function Sidebar() {
       {/* Brand Section */}
       <div className="p-6 border-b border-white/20">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-white/10 rounded-lg">
-            <School className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center bg-white/10">
+            <img src="/cnt-logo.png" alt="CNT Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-lg font-semibold">THPT Chuyên Nguyễn Trãi</h1>
