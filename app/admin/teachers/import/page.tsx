@@ -89,53 +89,23 @@ export default function ImportTeachersPage() {
   const errorCount = parsedData.filter((r) => !r.isValid).length;
 
   const downloadTemplate = () => {
-    // Sheet 1: Giáo viên (không có cột Mã môn - hệ thống tự sinh)
     const teachersData = [
-      {
-        'Họ tên': 'Nguyễn Văn A',
-        'Loại GV': 'chuyen_chinh',
-        'Môn dạy': 'Toán',
-        'Lớp': '10A1',
-      },
-      {
-        'Họ tên': 'Nguyễn Văn A',
-        'Loại GV': 'chuyen_chinh',
-        'Môn dạy': 'Toán',
-        'Lớp': '10A2',
-      },
-      {
-        'Họ tên': 'Trần Thị B',
-        'Loại GV': 'bo_mon',
-        'Môn dạy': 'Vật lý',
-        'Lớp': '11A1',
-      },
-    ];
-
-    // Sheet 2: Hướng dẫn mã môn
-    const subjectsData = [
-      { 'Ghi chú': 'Mã môn được tự động sinh từ tên môn (bỏ dấu, viết thường, thay space bằng _)' },
-      { 'Ghi chú': 'Ví dụ: "Công nghệ thông tin" → cong_nghe_thong_tin' },
-      { 'Ghi chú': 'Ví dụ: "Toán" → toan' },
-      { 'Ghi chú': 'Ví dụ: "Thể dục" → the_duc' },
-      { 'Ghi chú': 'Bạn có thể nhập bất kỳ tên môn nào — hệ thống tự xử lý' },
+      { 'Họ tên': 'Nguyễn Văn A', 'Loại GV': 'chuyen_chinh', 'Môn dạy': 'Toán', 'Lớp': '10A1' },
+      { 'Họ tên': 'Nguyễn Văn A', 'Loại GV': 'chuyen_chinh', 'Môn dạy': 'Toán', 'Lớp': '10A2' },
+      { 'Họ tên': 'Trần Thị B', 'Loại GV': 'bo_mon', 'Môn dạy': 'Vật lý', 'Lớp': '11A1' },
+      { 'Họ tên': 'Lê Văn C', 'Loại GV': 'bo_mon', 'Môn dạy': 'Công nghệ thông tin', 'Lớp': '12A1' },
+      { 'Họ tên': 'Phạm Thị D', 'Loại GV': 'chu_nhiem', 'Môn dạy': 'Ngữ văn', 'Lớp': '10A1' },
     ];
 
     const ws1 = XLSX.utils.json_to_sheet(teachersData);
-    const ws2 = XLSX.utils.json_to_sheet(subjectsData);
-
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws1, 'Giáo viên');
-    XLSX.utils.book_append_sheet(wb, ws2, 'Danh mục môn');
 
     ws1['!cols'] = [
       { wch: 25 },
       { wch: 15 },
-      { wch: 15 },
+      { wch: 25 },
       { wch: 10 },
-    ];
-    ws2['!cols'] = [
-      { wch: 15 },
-      { wch: 12 },
     ];
 
     XLSX.writeFile(wb, 'Mau_Import_Giao_Vien.xlsx');
