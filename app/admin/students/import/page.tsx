@@ -150,10 +150,13 @@ export default function ImportStudentsPage() {
       const workbook = XLSX.read(data, { type: 'array' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json<StudentRow>(worksheet, { defval: '' });
+      const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '' });
 
       const validated = jsonData.map((row) => {
-        return validateRow(row);
+        const normalized = Object.fromEntries(
+          Object.entries(row).map(([k, v]) => [k, String(v ?? '')])
+        ) as StudentRow;
+        return validateRow(normalized);
       });
 
       setParsedData(validated);
