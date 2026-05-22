@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getDashboardStats } from '@/app/admin/actions';
 import { supabase } from '@/lib/supabase/client';
 import Card from '@/components/ui/Card';
@@ -17,6 +17,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchStats = () =>
     getDashboardStats()
@@ -24,23 +25,27 @@ export default function AdminDashboard() {
       .catch(() => setFetchError('Không thể tải dữ liệu dashboard. Vui lòng kiểm tra cấu hình Supabase.'))
       .finally(() => setLoading(false));
 
+  const debouncedFetch = () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(fetchStats, 3000);
+  };
+
   useEffect(() => {
     fetchStats();
 
     const channel = supabase
       .channel('admin-dashboard')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'survey_completion' }, () => {
-        fetchStats();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'survey_responses' }, () => {
-        fetchStats();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'survey_completion' }, debouncedFetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'survey_responses' }, debouncedFetch)
       .subscribe((status) => {
         setIsLive(status === 'SUBSCRIBED');
       });
 
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+    return () => {
+      supabase.removeChannel(channel);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return <div className="text-center py-10">Đang tải...</div>;
