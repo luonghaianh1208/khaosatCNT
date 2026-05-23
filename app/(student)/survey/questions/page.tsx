@@ -71,7 +71,8 @@ export default function QuestionsPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        const { data: { session }, error: authError } = await supabase.auth.getSession();
+        const authUser = session?.user;
 
         if (authError || !authUser) {
           router.push('/login');

@@ -11,8 +11,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || user.user_metadata?.role !== 'superadmin') {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user || session.user.user_metadata?.role !== 'superadmin') {
         router.push('/login');
         return;
       }
