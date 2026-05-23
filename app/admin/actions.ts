@@ -546,6 +546,7 @@ export async function getReportData(sessionId?: string) {
     { data: homeroomResponses },
     { data: completions },
     { data: allUsers },
+    { data: classCounts },
   ] = await Promise.all([
     client
       .from('survey_responses')
@@ -561,8 +562,10 @@ export async function getReportData(sessionId?: string) {
       .select(`*, users(full_name, class_name)`)
       .eq('survey_session_id', targetId)
       .eq('is_submitted', true),
-    // SECURITY DEFINER function — bypasses RLS without service role key
-    client.rpc('get_user_class_map'),
+    // range(0,9999) overrides PostgREST default 1000-row limit
+    client.rpc('get_user_class_map').range(0, 9999),
+    // Aggregated counts — only 36 rows, no row-limit concern
+    client.rpc('get_class_student_counts'),
   ]);
 
   // Build user_id → class_name map
@@ -575,13 +578,11 @@ export async function getReportData(sessionId?: string) {
       teacher_class_assignments: { class_name: userClassMap.get(r.user_id) || 'N/A' },
     }));
 
-  // Total enrolled students per class
-  const classCountMap = new Map<string, number>();
-  (allUsers || []).forEach((u: any) => {
-    const cls = u.class_name || 'N/A';
-    classCountMap.set(cls, (classCountMap.get(cls) || 0) + 1);
-  });
-  const studentsByClass = Array.from(classCountMap.entries()).map(([class_name, total]) => ({ class_name, total }));
+  // Total enrolled students per class — from pre-aggregated SECURITY DEFINER function
+  const studentsByClass = (classCounts || []).map((r: any) => ({
+    class_name: r.class_name as string,
+    total: Number(r.total),
+  }));
 
   return {
     responses: enriched(responses || []),
