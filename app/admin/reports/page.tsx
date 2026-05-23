@@ -20,13 +20,14 @@ interface TeacherStats {
   teacher_name: string;
   subject: string;
   class_name: string;
+  classes: string[];
   teacher_type: string;
   q1_avg: number;
   q2_avg: number;
   q3_avg: number;
   q4_avg: number;
-  q5_yes_rate: number | null; // 0-100 % học sinh nói "Có" (câu yes/no)
-  total_avg: number;          // trung bình Q1-Q4 (thang 1-10)
+  q5_yes_rate: number | null;
+  total_avg: number;
   student_count: number;
   is_homeroom: boolean;
 }
@@ -119,63 +120,67 @@ export default function ReportsPage() {
     completions: any[];
     studentsByClass: { class_name: string; total: number }[];
   }) => {
-    type Acc = TeacherStats & { q1s: number; q2s: number; q3s: number; q4s: number; q5s: number };
+    type Acc = TeacherStats & { q1s: number; q2s: number; q3s: number; q4s: number; q5s: number; classSet: Set<string> };
     const teacherMap = new Map<string, Acc>();
 
-    // Subject teachers (q1-q5)
+    // Subject teachers — grouped by teacher_id (one row per teacher+subject, not per class)
     data.responses.forEach((r: any) => {
       const cn = r.teacher_class_assignments?.class_name || 'N/A';
-      const key = `${r.teacher_id}-${cn}`;
+      const key = r.teacher_id;
       if (!teacherMap.has(key)) {
         teacherMap.set(key, {
           key, teacher_id: r.teacher_id,
           teacher_name: r.teachers?.full_name || 'Unknown',
           subject: r.teachers?.subject || 'N/A',
-          class_name: cn,
+          class_name: '', classes: [],
           teacher_type: r.teachers?.teacher_type || 'bo_mon',
           q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_yes_rate: 0,
           q1s: 0, q2s: 0, q3s: 0, q4s: 0, q5s: 0,
           total_avg: 0, student_count: 0, is_homeroom: false,
+          classSet: new Set(),
         });
       }
       const s = teacherMap.get(key)!;
+      s.classSet.add(cn);
       s.q1s += r.q1_score || 0; s.q2s += r.q2_score || 0;
       s.q3s += r.q3_score || 0; s.q4s += r.q4_score || 0;
       s.q5s += r.q5_score || 0; s.student_count++;
     });
 
-    // Homeroom teachers (q1-q4 + open feedback)
+    // Homeroom teachers — grouped by teacher_id
     data.homeroomResponses.forEach((r: any) => {
       const cn = r.teacher_class_assignments?.class_name || 'N/A';
-      const key = `hr-${r.teacher_id}-${cn}`;
+      const key = `hr-${r.teacher_id}`;
       if (!teacherMap.has(key)) {
         teacherMap.set(key, {
           key, teacher_id: r.teacher_id,
           teacher_name: r.teachers?.full_name || 'Unknown',
-          subject: 'GVCN', class_name: cn,
+          subject: 'GVCN', class_name: '', classes: [],
           teacher_type: 'chu_nhiem',
           q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_yes_rate: null,
           q1s: 0, q2s: 0, q3s: 0, q4s: 0, q5s: 0,
           total_avg: 0, student_count: 0, is_homeroom: true,
+          classSet: new Set(),
         });
       }
       const s = teacherMap.get(key)!;
+      s.classSet.add(cn);
       s.q1s += r.q1_score || 0; s.q2s += r.q2_score || 0;
       s.q3s += r.q3_score || 0; s.q4s += r.q4_score || 0;
       s.student_count++;
     });
 
-    // Calculate averages
+    // Calculate averages and derive classes array
     const stats: TeacherStats[] = [];
     teacherMap.forEach((s) => {
+      s.classes = [...s.classSet].sort();
+      s.class_name = s.classes.join(', ');
       if (s.student_count > 0) {
         s.q1_avg = round2(s.q1s / s.student_count);
         s.q2_avg = round2(s.q2s / s.student_count);
         s.q3_avg = round2(s.q3s / s.student_count);
         s.q4_avg = round2(s.q4s / s.student_count);
-        // total_avg luôn dùng Q1-Q4 (thang 1-10) cho cả hai loại GV
         s.total_avg = round2((s.q1_avg + s.q2_avg + s.q3_avg + s.q4_avg) / 4);
-        // Q5 là câu Yes/No (0=Không, 1=Có) — tách riêng thành tỉ lệ %
         if (s.is_homeroom) {
           s.q5_yes_rate = null;
         } else {
@@ -219,7 +224,7 @@ export default function ReportsPage() {
   // ─── Derived data ─────────────────────────────────────────────────────────
 
   const uniqueClasses = useMemo(
-    () => [...new Set(teacherStats.map((t) => t.class_name))].sort(),
+    () => [...new Set(teacherStats.flatMap((t) => t.classes))].sort(),
     [teacherStats]
   );
   const uniqueSubjects = useMemo(
@@ -230,7 +235,7 @@ export default function ReportsPage() {
   const filteredStats = useMemo(() => {
     return teacherStats
       .filter((t) => {
-        if (classFilter && t.class_name !== classFilter) return false;
+        if (classFilter && !t.classes.includes(classFilter)) return false;
         if (subjectFilter && t.subject !== subjectFilter) return false;
         if (typeFilter === 'homeroom' && !t.is_homeroom) return false;
         if (typeFilter === 'subject' && t.is_homeroom) return false;
@@ -317,6 +322,11 @@ export default function ReportsPage() {
       .sort((a, b) => b.rate - a.rate || b.submitted - a.submitted);
   }, [students, studentsByClass]);
 
+  const filteredClassSubmitChart = useMemo(() => {
+    if (!classFilter) return classSubmitChart;
+    return classSubmitChart.filter((c) => c.cls === classFilter);
+  }, [classSubmitChart, classFilter]);
+
   const radarData = useMemo(() => {
     if (!selectedTeacher) return [];
     // Q5 là yes/no nên không đưa vào radar 1-10
@@ -347,7 +357,7 @@ export default function ReportsPage() {
         ['BÁO CÁO TỔNG HỢP ĐIỂM GIÁO VIÊN'],
         ['Giáo viên', 'Môn', 'Lớp', 'Loại', 'TB Câu 1', 'TB Câu 2', 'TB Câu 3', 'TB Câu 4', '% Câu 5 Có', 'TB Chung (C1-C4)', 'Số HS'],
         ...filteredStats.map((t) => [
-          t.teacher_name, t.subject, t.class_name,
+          t.teacher_name, t.subject, t.classes.join(', '),
           t.is_homeroom ? 'GVCN' : 'Bộ môn',
           t.q1_avg, t.q2_avg, t.q3_avg, t.q4_avg,
           t.q5_yes_rate != null ? `${t.q5_yes_rate}%` : 'N/A',
@@ -657,7 +667,7 @@ export default function ReportsPage() {
                                   <span className="ml-1.5 text-xs bg-info/10 text-info px-1.5 py-0.5 rounded-full">GVCN</span>
                                 )}
                               </td>
-                              <td className="py-2.5 px-3 text-xs text-text-secondary">{t.subject} · {t.class_name}</td>
+                              <td className="py-2.5 px-3 text-xs text-text-secondary">{t.subject} · {t.classes.join(', ')}</td>
                               {[t.q1_avg, t.q2_avg, t.q3_avg, t.q4_avg].map((v, qi) => (
                                 <td key={qi} className="py-2.5 px-3 text-right text-xs">{v > 0 ? v.toFixed(2) : '–'}</td>
                               ))}
@@ -688,7 +698,7 @@ export default function ReportsPage() {
                       <div>
                         <h3 className="text-sm font-semibold text-text-primary">{selectedTeacher.teacher_name}</h3>
                         <p className="text-xs text-text-muted mt-0.5">
-                          {selectedTeacher.subject} · Lớp {selectedTeacher.class_name}
+                          {selectedTeacher.subject} · {selectedTeacher.classes.join(', ')}
                         </p>
                       </div>
                       <button onClick={() => setSelectedTeacher(null)} className="text-text-muted hover:text-text-primary text-xl leading-none -mt-1">×</button>
@@ -752,7 +762,7 @@ export default function ReportsPage() {
               <Card>
                 <h3 className="text-sm font-semibold text-text-primary mb-4">Tỉ lệ nộp bài theo lớp</h3>
                 <div className="space-y-2.5">
-                  {classSubmitChart.map((c) => (
+                  {filteredClassSubmitChart.map((c) => (
                     <div key={c.cls} className="flex items-center gap-3">
                       <span className="text-sm text-text-primary font-medium w-16 flex-shrink-0">{c.cls}</span>
                       <div className="flex-1 bg-border rounded-full h-4 overflow-hidden">
@@ -791,10 +801,10 @@ export default function ReportsPage() {
                     <tbody>
                       {filteredStats
                         .slice()
-                        .sort((a, b) => a.class_name.localeCompare(b.class_name) || b.total_avg - a.total_avg)
+                        .sort((a, b) => a.teacher_name.localeCompare(b.teacher_name) || b.total_avg - a.total_avg)
                         .map((t) => (
                           <tr key={t.key} className="border-t border-border hover:bg-bg-light/50">
-                            <td className="py-2.5 px-3 font-medium text-text-primary">{t.class_name}</td>
+                            <td className="py-2.5 px-3 font-medium text-text-primary">{t.classes.join(', ')}</td>
                             <td className="py-2.5 px-3 text-text-primary">{t.teacher_name}</td>
                             <td className="py-2.5 px-3 text-text-secondary text-xs">{t.subject}</td>
                             <td className="py-2.5 px-3 text-right">
