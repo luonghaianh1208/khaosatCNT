@@ -19,8 +19,8 @@ export default function SurveyPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: { session }, error: authError } = await supabase.auth.getSession();
-        const authUser = session?.user;
+        const { data: { session: authSession }, error: authError } = await supabase.auth.getSession();
+        const authUser = authSession?.user;
 
         if (authError || !authUser) {
           router.push('/login');
