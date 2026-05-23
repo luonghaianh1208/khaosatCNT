@@ -1,7 +1,6 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/server-action-client';
-import { createServiceRoleClient } from '@/lib/supabase/service-role';
 
 const normalizeClass = (s: string) => s.trim().replace(/\s+/g, ' ');
 
@@ -544,7 +543,6 @@ export async function getReportData(sessionId?: string) {
 
   // survey_responses has no FK to teacher_class_assignments, so we resolve
   // class_name manually via user_id → users.class_name.
-  // Use service role client for users to bypass RLS reliably.
   const [
     { data: responses },
     { data: homeroomResponses },
@@ -565,7 +563,7 @@ export async function getReportData(sessionId?: string) {
       .select(`*, users(full_name, class_name)`)
       .eq('survey_session_id', targetId)
       .eq('is_submitted', true),
-    serviceClient
+    client
       .from('users')
       .select('id, class_name'),
   ]);
