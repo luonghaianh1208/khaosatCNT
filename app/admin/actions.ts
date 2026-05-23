@@ -528,6 +528,7 @@ export async function importHomeroom(rows: { class_name: string; full_name: stri
 
 export async function getReportData(sessionId?: string) {
   const client = createAdminClient();
+  const serviceClient = createServiceRoleClient();
 
   let targetId = sessionId;
   if (!targetId) {
@@ -563,7 +564,7 @@ export async function getReportData(sessionId?: string) {
       .select(`*, users(full_name, class_name)`)
       .eq('survey_session_id', targetId)
       .eq('is_submitted', true),
-    client
+    serviceClient
       .from('users')
       .select('class_name'),
   ]);
