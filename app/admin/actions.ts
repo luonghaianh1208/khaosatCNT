@@ -1,6 +1,7 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/server-action-client';
+import { createServiceRoleClient } from '@/lib/supabase/service-role';
 
 const normalizeClass = (s: string) => s.trim().replace(/\s+/g, ' ');
 
