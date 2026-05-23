@@ -542,22 +542,20 @@ export async function getReportData(sessionId?: string) {
 
   if (!targetId) return { responses: [], homeroomResponses: [], completions: [], studentsByClass: [] };
 
-  // Join users(class_name) directly via FK on user_id
-  // Also fetch all users to compute total-per-class for submission progress
   const [
     { data: responses },
     { data: homeroomResponses },
     { data: completions },
-    { data: allStudents },
+    { data: allUsers },
   ] = await Promise.all([
     client
       .from('survey_responses')
-      .select(`*, teachers(full_name, subject, teacher_type), users(class_name)`)
+      .select(`*, teachers(full_name, subject, teacher_type)`)
       .eq('survey_session_id', targetId)
       .not('teacher_id', 'is', null),
     client
       .from('homeroom_responses')
-      .select(`*, teachers(full_name, subject, teacher_type), users(class_name)`)
+      .select(`*, teachers(full_name, subject, teacher_type)`)
       .eq('survey_session_id', targetId),
     client
       .from('survey_completion')
@@ -566,19 +564,22 @@ export async function getReportData(sessionId?: string) {
       .eq('is_submitted', true),
     serviceClient
       .from('users')
-      .select('class_name'),
+      .select('id, class_name'),
   ]);
 
-  // Normalize to teacher_class_assignments shape the frontend expects
+  // Build user_id → class_name map via service role (bypasses RLS)
+  const userClassMap = new Map<string, string>();
+  (allUsers || []).forEach((u: any) => userClassMap.set(u.id, u.class_name || 'N/A'));
+
   const enriched = (arr: any[]) =>
     arr.map((r: any) => ({
       ...r,
-      teacher_class_assignments: { class_name: r.users?.class_name || 'N/A' },
+      teacher_class_assignments: { class_name: userClassMap.get(r.user_id) || 'N/A' },
     }));
 
-  // Total students per class (all enrolled, not just submitted)
+  // Total enrolled students per class
   const classCountMap = new Map<string, number>();
-  (allStudents || []).forEach((u: any) => {
+  (allUsers || []).forEach((u: any) => {
     const cls = u.class_name || 'N/A';
     classCountMap.set(cls, (classCountMap.get(cls) || 0) + 1);
   });
