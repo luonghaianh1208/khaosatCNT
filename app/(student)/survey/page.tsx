@@ -127,7 +127,7 @@ export default function SurveyPage() {
             <CheckCircle className="w-8 h-8 text-success" />
           </div>
           <h2 className="text-lg font-medium text-text-primary mb-2">
-            Bạn đã hoàn thành khảo sát
+            Bạn đã nộp bài khảo sát rồi
           </h2>
           <p className="text-text-secondary mb-2">
             Cảm ơn bạn đã tham gia khảo sát. Kết quả của bạn đã được ghi nhận.
@@ -136,7 +136,7 @@ export default function SurveyPage() {
             Đợt khảo sát: {activeSession.name}
           </p>
           <div className="flex justify-center">
-            <Button variant="secondary" onClick={() => router.push('/login')}>
+            <Button variant="secondary" onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }}>
               Đăng xuất
             </Button>
           </div>
