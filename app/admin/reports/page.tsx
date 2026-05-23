@@ -25,8 +25,8 @@ interface TeacherStats {
   q2_avg: number;
   q3_avg: number;
   q4_avg: number;
-  q5_avg: number | null;
-  total_avg: number;
+  q5_yes_rate: number | null; // 0-100 % học sinh nói "Có" (câu yes/no)
+  total_avg: number;          // trung bình Q1-Q4 (thang 1-10)
   student_count: number;
   is_homeroom: boolean;
 }
@@ -133,7 +133,7 @@ export default function ReportsPage() {
           subject: r.teachers?.subject || 'N/A',
           class_name: cn,
           teacher_type: r.teachers?.teacher_type || 'bo_mon',
-          q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_avg: 0,
+          q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_yes_rate: 0,
           q1s: 0, q2s: 0, q3s: 0, q4s: 0, q5s: 0,
           total_avg: 0, student_count: 0, is_homeroom: false,
         });
@@ -154,7 +154,7 @@ export default function ReportsPage() {
           teacher_name: r.teachers?.full_name || 'Unknown',
           subject: 'GVCN', class_name: cn,
           teacher_type: 'chu_nhiem',
-          q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_avg: null,
+          q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_yes_rate: null,
           q1s: 0, q2s: 0, q3s: 0, q4s: 0, q5s: 0,
           total_avg: 0, student_count: 0, is_homeroom: true,
         });
@@ -173,12 +173,13 @@ export default function ReportsPage() {
         s.q2_avg = round2(s.q2s / s.student_count);
         s.q3_avg = round2(s.q3s / s.student_count);
         s.q4_avg = round2(s.q4s / s.student_count);
+        // total_avg luôn dùng Q1-Q4 (thang 1-10) cho cả hai loại GV
+        s.total_avg = round2((s.q1_avg + s.q2_avg + s.q3_avg + s.q4_avg) / 4);
+        // Q5 là câu Yes/No (0=Không, 1=Có) — tách riêng thành tỉ lệ %
         if (s.is_homeroom) {
-          s.q5_avg = null;
-          s.total_avg = round2((s.q1_avg + s.q2_avg + s.q3_avg + s.q4_avg) / 4);
+          s.q5_yes_rate = null;
         } else {
-          s.q5_avg = round2(s.q5s / s.student_count);
-          s.total_avg = round2((s.q1_avg + s.q2_avg + s.q3_avg + s.q4_avg + s.q5_avg) / 5);
+          s.q5_yes_rate = Math.round((s.q5s / s.student_count) * 100);
         }
       }
       stats.push(s);
@@ -292,17 +293,12 @@ export default function ReportsPage() {
   const qAvgChart = useMemo(() => {
     if (!filteredStats.length) return [];
     const n = filteredStats.length;
-    const subjectOnly = filteredStats.filter((t) => !t.is_homeroom);
-    const qs = [
+    return [
       { name: 'Câu 1', avg: round2(filteredStats.reduce((s, t) => s + t.q1_avg, 0) / n) },
       { name: 'Câu 2', avg: round2(filteredStats.reduce((s, t) => s + t.q2_avg, 0) / n) },
       { name: 'Câu 3', avg: round2(filteredStats.reduce((s, t) => s + t.q3_avg, 0) / n) },
       { name: 'Câu 4', avg: round2(filteredStats.reduce((s, t) => s + t.q4_avg, 0) / n) },
     ];
-    if (subjectOnly.length > 0) {
-      qs.push({ name: 'Câu 5', avg: round2(subjectOnly.reduce((s, t) => s + (t.q5_avg ?? 0), 0) / subjectOnly.length) });
-    }
-    return qs;
   }, [filteredStats]);
 
   const classSubmitChart = useMemo(() => {
@@ -323,21 +319,13 @@ export default function ReportsPage() {
 
   const radarData = useMemo(() => {
     if (!selectedTeacher) return [];
-    const qs = selectedTeacher.is_homeroom
-      ? [
-          { subject: 'Câu 1', A: selectedTeacher.q1_avg },
-          { subject: 'Câu 2', A: selectedTeacher.q2_avg },
-          { subject: 'Câu 3', A: selectedTeacher.q3_avg },
-          { subject: 'Câu 4', A: selectedTeacher.q4_avg },
-        ]
-      : [
-          { subject: 'Câu 1', A: selectedTeacher.q1_avg },
-          { subject: 'Câu 2', A: selectedTeacher.q2_avg },
-          { subject: 'Câu 3', A: selectedTeacher.q3_avg },
-          { subject: 'Câu 4', A: selectedTeacher.q4_avg },
-          { subject: 'Câu 5', A: selectedTeacher.q5_avg ?? 0 },
-        ];
-    return qs.map((q) => ({ ...q, fullMark: 10 }));
+    // Q5 là yes/no nên không đưa vào radar 1-10
+    return [
+      { subject: 'Câu 1', A: selectedTeacher.q1_avg, fullMark: 10 },
+      { subject: 'Câu 2', A: selectedTeacher.q2_avg, fullMark: 10 },
+      { subject: 'Câu 3', A: selectedTeacher.q3_avg, fullMark: 10 },
+      { subject: 'Câu 4', A: selectedTeacher.q4_avg, fullMark: 10 },
+    ];
   }, [selectedTeacher]);
 
   // ─── Sorting ──────────────────────────────────────────────────────────────
@@ -357,12 +345,13 @@ export default function ReportsPage() {
 
       const ws1 = XLSX.utils.aoa_to_sheet([
         ['BÁO CÁO TỔNG HỢP ĐIỂM GIÁO VIÊN'],
-        ['Giáo viên', 'Môn', 'Lớp', 'Loại', 'TB Câu 1', 'TB Câu 2', 'TB Câu 3', 'TB Câu 4', 'TB Câu 5', 'TB Chung', 'Số HS'],
+        ['Giáo viên', 'Môn', 'Lớp', 'Loại', 'TB Câu 1', 'TB Câu 2', 'TB Câu 3', 'TB Câu 4', '% Câu 5 Có', 'TB Chung (C1-C4)', 'Số HS'],
         ...filteredStats.map((t) => [
           t.teacher_name, t.subject, t.class_name,
           t.is_homeroom ? 'GVCN' : 'Bộ môn',
           t.q1_avg, t.q2_avg, t.q3_avg, t.q4_avg,
-          t.q5_avg ?? 'N/A', t.total_avg, t.student_count,
+          t.q5_yes_rate != null ? `${t.q5_yes_rate}%` : 'N/A',
+          t.total_avg, t.student_count,
         ]),
       ]);
       ws1['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 10 }, { wch: 10 }, ...Array(7).fill({ wch: 10 })];
@@ -634,11 +623,14 @@ export default function ReportsPage() {
                               </th>
                             ))}
                             <th className="text-left py-3 px-3 text-xs font-semibold text-text-secondary">Môn · Lớp</th>
-                            {['q1_avg', 'q2_avg', 'q3_avg', 'q4_avg', 'q5_avg'].map((f, i) => (
+                            {['q1_avg', 'q2_avg', 'q3_avg', 'q4_avg'].map((f, i) => (
                               <th key={f} className="text-right py-3 px-3 text-xs font-semibold text-text-secondary cursor-pointer hover:text-primary select-none" onClick={() => toggleSort(f)}>
                                 C{i + 1}<SortIcon active={sortField === f} dir={sortDir} />
                               </th>
                             ))}
+                            <th className="text-right py-3 px-3 text-xs font-semibold text-text-secondary cursor-pointer hover:text-primary select-none" onClick={() => toggleSort('q5_yes_rate')}>
+                              C5 (Có%)<SortIcon active={sortField === 'q5_yes_rate'} dir={sortDir} />
+                            </th>
                             <th className="text-right py-3 px-3 text-xs font-semibold text-primary cursor-pointer select-none" onClick={() => toggleSort('total_avg')}>
                               TB Chung<SortIcon active={sortField === 'total_avg'} dir={sortDir} />
                             </th>
@@ -670,7 +662,10 @@ export default function ReportsPage() {
                                 <td key={qi} className="py-2.5 px-3 text-right text-xs">{v > 0 ? v.toFixed(2) : '–'}</td>
                               ))}
                               <td className="py-2.5 px-3 text-right text-xs">
-                                {t.q5_avg != null ? t.q5_avg.toFixed(2) : <span className="text-text-muted">–</span>}
+                                {t.q5_yes_rate != null
+                                  ? <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${t.q5_yes_rate >= 50 ? 'bg-success/10 text-success' : 'bg-crimson/10 text-crimson'}`}>{t.q5_yes_rate}%</span>
+                                  : <span className="text-text-muted">–</span>
+                                }
                               </td>
                               <td className="py-2.5 px-3 text-right">
                                 <span className={`text-sm font-bold px-2 py-0.5 rounded-full ${scoreBadgeClass(t.total_avg)}`}>
@@ -730,6 +725,20 @@ export default function ReportsPage() {
                           </span>
                         </div>
                       ))}
+                      {selectedTeacher.q5_yes_rate != null && (
+                        <div className="flex items-center gap-2 pt-1 border-t border-border mt-1">
+                          <span className="text-xs text-text-muted w-12">Câu 5</span>
+                          <div className="flex-1 bg-border rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="h-1.5 rounded-full"
+                              style={{ width: `${selectedTeacher.q5_yes_rate}%`, backgroundColor: selectedTeacher.q5_yes_rate >= 50 ? SCORE_COLORS.great : SCORE_COLORS.bad }}
+                            />
+                          </div>
+                          <span className={`text-xs font-semibold w-8 text-right ${selectedTeacher.q5_yes_rate >= 50 ? 'text-success' : 'text-crimson'}`}>
+                            {selectedTeacher.q5_yes_rate}% Có
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </Card>
                 )}
