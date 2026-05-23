@@ -561,8 +561,8 @@ export async function getReportData(sessionId?: string) {
       .select(`*, users(full_name, class_name)`)
       .eq('survey_session_id', targetId)
       .eq('is_submitted', true),
-    // Use service role client to bypass RLS for full user list
-    createServiceRoleClient().from('users').select('id, class_name'),
+    // SECURITY DEFINER function — bypasses RLS without service role key
+    client.rpc('get_user_class_map'),
   ]);
 
   // Build user_id → class_name map
