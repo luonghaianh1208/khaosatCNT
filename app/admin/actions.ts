@@ -528,7 +528,6 @@ export async function importHomeroom(rows: { class_name: string; full_name: stri
 
 export async function getReportData(sessionId?: string) {
   const client = createAdminClient();
-  const serviceClient = createServiceRoleClient();
 
   let targetId = sessionId;
   if (!targetId) {
@@ -562,12 +561,11 @@ export async function getReportData(sessionId?: string) {
       .select(`*, users(full_name, class_name)`)
       .eq('survey_session_id', targetId)
       .eq('is_submitted', true),
-    serviceClient
-      .from('users')
-      .select('id, class_name'),
+    // SECURITY DEFINER function bypasses RLS — no service role key needed
+    client.rpc('get_user_class_map'),
   ]);
 
-  // Build user_id → class_name map via service role (bypasses RLS)
+  // Build user_id → class_name map
   const userClassMap = new Map<string, string>();
   (allUsers || []).forEach((u: any) => userClassMap.set(u.id, u.class_name || 'N/A'));
 
