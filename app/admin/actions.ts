@@ -542,10 +542,12 @@ export async function getReportData(sessionId?: string) {
   if (!targetId) return { responses: [], homeroomResponses: [], completions: [], studentsByClass: [] };
 
   // Join users(class_name) directly via FK on user_id
+  // Also fetch all users to compute total-per-class for submission progress
   const [
     { data: responses },
     { data: homeroomResponses },
     { data: completions },
+    { data: allStudents },
   ] = await Promise.all([
     client
       .from('survey_responses')
@@ -561,6 +563,9 @@ export async function getReportData(sessionId?: string) {
       .select(`*, users(full_name, class_name)`)
       .eq('survey_session_id', targetId)
       .eq('is_submitted', true),
+    client
+      .from('users')
+      .select('class_name'),
   ]);
 
   // Normalize to teacher_class_assignments shape the frontend expects
@@ -570,10 +575,10 @@ export async function getReportData(sessionId?: string) {
       teacher_class_assignments: { class_name: r.users?.class_name || 'N/A' },
     }));
 
-  // Compute studentsByClass from completions
+  // Total students per class (all enrolled, not just submitted)
   const classCountMap = new Map<string, number>();
-  (completions || []).forEach((c: any) => {
-    const cls = c.users?.class_name || 'N/A';
+  (allStudents || []).forEach((u: any) => {
+    const cls = u.class_name || 'N/A';
     classCountMap.set(cls, (classCountMap.get(cls) || 0) + 1);
   });
   const studentsByClass = Array.from(classCountMap.entries()).map(([class_name, total]) => ({ class_name, total }));
