@@ -21,7 +21,7 @@ export async function getStudents(search: string, gradeFilter: string) {
     query = query.eq('grade', gradeFilter);
   }
 
-  const { data, error } = await query;
+  const { data, error } = await query.range(0, 9999);
   if (error) throw new Error(error.message);
   return data || [];
 }
@@ -552,16 +552,19 @@ export async function getReportData(sessionId?: string) {
       .from('survey_responses')
       .select(`*, teachers(full_name, subject, teacher_type)`)
       .eq('survey_session_id', targetId)
-      .not('teacher_id', 'is', null),
+      .not('teacher_id', 'is', null)
+      .range(0, 99999),
     client
       .from('homeroom_responses')
       .select(`*, teachers(full_name, subject, teacher_type)`)
-      .eq('survey_session_id', targetId),
+      .eq('survey_session_id', targetId)
+      .range(0, 99999),
     client
       .from('survey_completion')
       .select(`*, users(full_name, class_name)`)
       .eq('survey_session_id', targetId)
-      .eq('is_submitted', true),
+      .eq('is_submitted', true)
+      .range(0, 9999),
     // range(0,9999) overrides PostgREST default 1000-row limit
     client.rpc('get_user_class_map').range(0, 9999),
     // Aggregated counts — only 36 rows, no row-limit concern
