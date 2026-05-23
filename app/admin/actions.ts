@@ -566,8 +566,8 @@ export async function getReportData(sessionId?: string) {
       .eq('survey_session_id', targetId)
       .eq('is_submitted', true)
       .range(0, 9999),
-    // range(0,9999) overrides PostgREST default 1000-row limit
-    client.rpc('get_user_class_map').range(0, 9999),
+    // Service role bypasses RLS + avoids 1000-row PostgREST default limit on RPC calls
+    createServiceRoleClient().from('users').select('id, class_name').range(0, 9999),
     // Aggregated counts — only 36 rows, no row-limit concern
     client.rpc('get_class_student_counts'),
   ]);
