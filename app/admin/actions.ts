@@ -35,21 +35,21 @@ export async function createStudent(payload: {
   class_name: string;
   password: string;
 }) {
-  const client = createAdminClient();
+  const serviceClient = createServiceRoleClient();
   const email = `${payload.username}@khaosat.ngt.edu.vn`;
 
-  const { data: authData, error: authError } = await client.auth.signUp({
+  const { data: authData, error: authError } = await serviceClient.auth.admin.createUser({
     email,
     password: payload.password,
-    options: {
-      data: { role: 'student' },
-    },
+    email_confirm: true,
+    user_metadata: { role: 'student' },
   });
 
   if (authError) throw new Error(authError.message);
 
   const authUserId = authData.user?.id ?? null;
 
+  const client = createAdminClient();
   const { error: insertError } = await client.from('users').insert({
     username: payload.username,
     full_name: payload.full_name,
