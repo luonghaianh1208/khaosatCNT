@@ -546,7 +546,7 @@ export async function getReportData(sessionId?: string) {
     { data: responses },
     { data: homeroomResponses },
     { data: completions },
-    { data: allUsers },
+    { data: userClassJson },
     { data: classCounts },
   ] = await Promise.all([
     client
@@ -566,15 +566,19 @@ export async function getReportData(sessionId?: string) {
       .eq('survey_session_id', targetId)
       .eq('is_submitted', true)
       .range(0, 9999),
-    // Service role bypasses RLS + row limits entirely
-    createServiceRoleClient().from('users').select('id, class_name').range(0, 9999),
+    // Returns single JSON object {user_id: class_name} — no row limit ever applies
+    client.rpc('get_user_class_map_json'),
     // Aggregated counts — only 36 rows, no row-limit concern
     client.rpc('get_class_student_counts'),
   ]);
 
-  // Build user_id → class_name map
+  // Build user_id → class_name map from JSON aggregate
   const userClassMap = new Map<string, string>();
-  (allUsers || []).forEach((u: any) => userClassMap.set(u.id, u.class_name || 'N/A'));
+  if (userClassJson && typeof userClassJson === 'object') {
+    Object.entries(userClassJson as Record<string, string>).forEach(([id, class_name]) => {
+      userClassMap.set(id, class_name || 'N/A');
+    });
+  }
 
   const enriched = (arr: any[]) =>
     arr.map((r: any) => ({
