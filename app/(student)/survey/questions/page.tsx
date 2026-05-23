@@ -312,8 +312,7 @@ export default function QuestionsPage() {
         .upsert(surveyResponseRecords, { onConflict: 'survey_session_id,user_id,teacher_id' });
 
       if (surveyUpsertError) {
-        console.error('survey_responses error:', surveyUpsertError);
-        throw new Error(`Lỗi survey_responses [${surveyUpsertError.code}]: ${surveyUpsertError.message}`);
+        throw new Error('Không thể lưu câu trả lời khảo sát');
       }
 
       // Upsert homeroom response if homeroom teacher exists
@@ -335,8 +334,7 @@ export default function QuestionsPage() {
           .upsert(homeroomRecord, { onConflict: 'survey_session_id,user_id,teacher_id' });
 
         if (homeroomUpsertError) {
-          console.error('homeroom_responses error:', homeroomUpsertError);
-          throw new Error(`Lỗi homeroom_responses [${homeroomUpsertError.code}]: ${homeroomUpsertError.message}`);
+          throw new Error('Không thể lưu câu trả lời GVCN');
         }
       }
 
@@ -351,8 +349,7 @@ export default function QuestionsPage() {
         }, { onConflict: 'survey_session_id,user_id' });
 
       if (completionError) {
-        console.error('survey_completion error:', completionError);
-        throw new Error(`Lỗi completion [${completionError.code}]: ${completionError.message}`);
+        throw new Error('Không thể cập nhật trạng thái nộp bài');
       }
 
       router.push('/survey/complete');
