@@ -333,7 +333,8 @@ export async function getDashboardStats() {
       client
         .from('survey_responses')
         .select('total_score')
-        .eq('survey_session_id', session.id),
+        .eq('survey_session_id', session.id)
+        .range(0, 99999),
     ]);
 
     submittedStudents = submitted || 0;

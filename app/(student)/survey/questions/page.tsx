@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { User, Teacher, TeacherClassAssignment, SurveyResponse, HomeroomResponse } from '@/lib/types';
@@ -38,6 +38,7 @@ export default function QuestionsPage() {
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [missingTeacherIds, setMissingTeacherIds] = useState<string[]>([]);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   // Calculate progress
   const calculateProgress = useCallback(() => {
@@ -88,6 +89,12 @@ export default function QuestionsPage() {
         if (userError || !userProfile) {
           setError('Không tìm thấy thông tin người dùng');
           setLoading(false);
+          return;
+        }
+
+        if (!userProfile.is_active) {
+          await supabase.auth.signOut();
+          router.push('/login');
           return;
         }
 
@@ -279,18 +286,46 @@ export default function QuestionsPage() {
   };
 
   const handleSubmit = async () => {
-    if (!user || !sessionId) return;
+    // Bug #2: block double-submit immediately via ref (state update is async)
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+
+    if (!user || !sessionId) {
+      isSubmittingRef.current = false;
+      return;
+    }
 
     setSubmitAttempted(true);
     const missingHomeroom = getMissingHomeroomQuestions();
     if (missingHomeroom.length > 0) {
       setError('Vui lòng điền đầy đủ tất cả câu hỏi trước khi nộp');
+      isSubmittingRef.current = false;
       return;
     }
     setSubmitting(true);
     setError(null);
 
     try {
+      // Bug #1: re-fetch time window from server right before submitting
+      const { data: currentSession } = await supabase
+        .from('survey_sessions')
+        .select('start_date, end_date')
+        .eq('id', sessionId)
+        .eq('is_active', true)
+        .single();
+
+      const now = new Date();
+      if (
+        !currentSession ||
+        now < new Date(currentSession.start_date) ||
+        now > new Date(currentSession.end_date)
+      ) {
+        setError('Đợt khảo sát chưa bắt đầu hoặc đã kết thúc. Vui lòng liên hệ quản trị viên.');
+        setSubmitting(false);
+        isSubmittingRef.current = false;
+        return;
+      }
+
       // Batch upsert survey responses
       const surveyResponseRecords = subjectTeachers.map((teacher) => {
         const scores = subjectScores[teacher.id] || {};
@@ -356,6 +391,7 @@ export default function QuestionsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đã xảy ra lỗi khi nộp khảo sát');
       setSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 
