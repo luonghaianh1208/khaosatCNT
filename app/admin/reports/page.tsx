@@ -570,11 +570,11 @@ export default function ReportsPage() {
                 {/* By subject */}
                 <Card>
                   <h3 className="text-sm font-semibold text-text-primary mb-4">Điểm TB theo môn học</h3>
-                  <ResponsiveContainer width="100%" height={Math.max(200, subjectChart.length * 28)}>
+                  <ResponsiveContainer width="100%" height={Math.max(200, subjectChart.length * 34)}>
                     <BarChart data={subjectChart} layout="vertical" margin={{ top: 0, right: 50, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                       <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 11 }} />
-                      <YAxis type="category" dataKey="name" width={70} tick={{ fontSize: 11 }} />
+                      <YAxis type="category" dataKey="name" width={170} tick={{ fontSize: 11 }} />
                       <Tooltip formatter={(v: any, _: any, { payload }: any) => [`${v.toFixed(2)} (${payload?.count || 0} GV)`, 'Điểm TB']} />
                       <Bar dataKey="avg" name="Điểm TB" radius={[0, 4, 4, 0]} label={{ position: 'right', fontSize: 11, formatter: (v: any) => v.toFixed(2) }}>
                         {subjectChart.map((e, i) => <Cell key={i} fill={scoreColor(e.avg)} />)}

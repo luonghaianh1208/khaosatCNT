@@ -115,15 +115,15 @@ export default function QuestionsPage() {
 
         setSessionId(session.id);
 
-        // Block re-entry if already submitted
+        // Block re-entry if already submitted (unless resubmit_allowed = true for GDQPAN)
         const { data: completionCheck } = await supabase
           .from('survey_completion')
-          .select('is_submitted')
+          .select('is_submitted, resubmit_allowed')
           .eq('survey_session_id', session.id)
           .eq('user_id', userProfile.id)
           .single();
 
-        if (completionCheck?.is_submitted) {
+        if (completionCheck?.is_submitted && !completionCheck?.resubmit_allowed) {
           router.replace('/survey');
           return;
         }
@@ -381,6 +381,7 @@ export default function QuestionsPage() {
           user_id: user.id,
           is_submitted: true,
           completed_at: new Date().toISOString(),
+          resubmit_allowed: false,
         }, { onConflict: 'survey_session_id,user_id' });
 
       if (completionError) {
