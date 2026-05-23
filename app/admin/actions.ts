@@ -541,27 +541,46 @@ export async function getReportData(sessionId?: string) {
 
   if (!targetId) return { responses: [], homeroomResponses: [], completions: [], studentsByClass: [] };
 
-  const [{ data: responses }, { data: homeroomResponses }, { data: completions }, { data: allStudents }] =
-    await Promise.all([
-      client
-        .from('survey_responses')
-        .select(`*, teachers(full_name, subject, teacher_type), teacher_class_assignments(class_name)`)
-        .eq('survey_session_id', targetId)
-        .not('teacher_id', 'is', null),
-      client
-        .from('homeroom_responses')
-        .select(`*, teachers(full_name, subject, teacher_type), teacher_class_assignments(class_name)`)
-        .eq('survey_session_id', targetId),
-      client
-        .from('survey_completion')
-        .select(`*, users(full_name, class_name)`)
-        .eq('survey_session_id', targetId)
-        .eq('is_submitted', true),
-      client
-        .from('users')
-        .select('class_name')
-        .eq('is_active', true),
-    ]);
+  // survey_responses has no FK to teacher_class_assignments, so we resolve
+  // class_name manually via user_id → users.class_name
+  const [
+    { data: responses },
+    { data: homeroomResponses },
+    { data: completions },
+    { data: allStudents },
+  ] = await Promise.all([
+    client
+      .from('survey_responses')
+      .select(`*, teachers(full_name, subject, teacher_type)`)
+      .eq('survey_session_id', targetId)
+      .not('teacher_id', 'is', null),
+    client
+      .from('homeroom_responses')
+      .select(`*, teachers(full_name, subject, teacher_type)`)
+      .eq('survey_session_id', targetId),
+    client
+      .from('survey_completion')
+      .select(`*, users(full_name, class_name)`)
+      .eq('survey_session_id', targetId)
+      .eq('is_submitted', true),
+    client
+      .from('users')
+      .select('id, class_name')
+      .eq('is_active', true),
+  ]);
+
+  // Build user_id → class_name lookup
+  const userClassMap = new Map<string, string>();
+  (allStudents || []).forEach((u: any) => {
+    userClassMap.set(u.id, u.class_name || 'N/A');
+  });
+
+  // Enrich responses with class_name derived from user_id
+  const enriched = (arr: any[]) =>
+    arr.map((r: any) => ({
+      ...r,
+      teacher_class_assignments: { class_name: userClassMap.get(r.user_id) || 'N/A' },
+    }));
 
   // Group student counts by class
   const classCountMap = new Map<string, number>();
@@ -572,8 +591,8 @@ export async function getReportData(sessionId?: string) {
   const studentsByClass = Array.from(classCountMap.entries()).map(([class_name, total]) => ({ class_name, total }));
 
   return {
-    responses: responses || [],
-    homeroomResponses: homeroomResponses || [],
+    responses: enriched(responses || []),
+    homeroomResponses: enriched(homeroomResponses || []),
     completions: completions || [],
     studentsByClass,
   };
