@@ -552,7 +552,7 @@ export async function getReportData(sessionId?: string) {
     { data: classCounts },
     { data: teacherClassCountsJson },
     { data: teacherClassAvgsJson },
-    { data: teacherAssignments },
+    { data: allTeachers },
   ] = await Promise.all([
     serviceClient
       .from('survey_responses')
@@ -579,11 +579,8 @@ export async function getReportData(sessionId?: string) {
     serviceClient.rpc('get_teacher_class_student_counts', { p_session_id: targetId }),
     // Per-class q1-q4 averages and q5 rate — authoritative SQL computation
     serviceClient.rpc('get_teacher_class_avgs', { p_session_id: targetId }),
-    // Teacher metadata by assignment — authoritative source for name/subject/type
-    serviceClient
-      .from('teacher_class_assignments')
-      .select('teacher_id, teachers(full_name, subject, teacher_type)')
-      .eq('survey_session_id', targetId),
+    // Fetch teachers directly — no join, no RLS, guaranteed complete
+    serviceClient.from('teachers').select('id, full_name, subject, teacher_type'),
   ]);
 
   // Build user_id → class_name map from JSON aggregate
@@ -603,16 +600,14 @@ export async function getReportData(sessionId?: string) {
     });
   }
 
-  // Build teacher_id → {full_name, subject, teacher_type} from assignments
+  // Build teacher_id → {full_name, subject, teacher_type} directly from teachers table
   const teacherMetaMap = new Map<string, { full_name: string; subject: string; teacher_type: string }>();
-  (teacherAssignments || []).forEach((a: any) => {
-    if (a.teacher_id && a.teachers && !teacherMetaMap.has(a.teacher_id)) {
-      teacherMetaMap.set(a.teacher_id, {
-        full_name: a.teachers.full_name || 'Unknown',
-        subject: a.teachers.subject || 'N/A',
-        teacher_type: a.teachers.teacher_type || 'bo_mon',
-      });
-    }
+  (allTeachers || []).forEach((t: any) => {
+    teacherMetaMap.set(t.id, {
+      full_name: t.full_name || 'Unknown',
+      subject: t.subject || 'N/A',
+      teacher_type: t.teacher_type || 'bo_mon',
+    });
   });
 
   const enriched = (arr: any[]) =>
