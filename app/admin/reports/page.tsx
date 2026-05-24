@@ -831,6 +831,7 @@ export default function ReportsPage() {
                         <th className="text-left py-3 px-3 text-xs font-semibold text-text-secondary">Lớp</th>
                         <th className="text-left py-3 px-3 text-xs font-semibold text-text-secondary">Giáo viên</th>
                         <th className="text-left py-3 px-3 text-xs font-semibold text-text-secondary">Môn</th>
+                        <th className="text-right py-3 px-3 text-xs font-semibold text-text-secondary">C5 (Có%)</th>
                         <th className="text-right py-3 px-3 text-xs font-semibold text-primary">TB Chung</th>
                         <th className="text-right py-3 px-3 text-xs font-semibold text-text-secondary">HS đánh giá</th>
                       </tr>
@@ -842,8 +843,14 @@ export default function ReportsPage() {
                         .map((t) => (
                           <tr key={t.key} className="border-t border-border hover:bg-bg-light/50">
                             <td className="py-2.5 px-3 font-medium text-text-primary">{t.classes.join(', ')}</td>
-                            <td className="py-2.5 px-3 text-text-primary">{t.teacher_name}</td>
+                            <td className="py-2.5 px-3 text-text-primary">
+                              {t.teacher_name}
+                              {t.is_homeroom && <span className="ml-1.5 text-xs bg-info/10 text-info px-1.5 py-0.5 rounded-full">GVCN</span>}
+                            </td>
                             <td className="py-2.5 px-3 text-text-secondary text-xs">{t.subject}</td>
+                            <td className="py-2.5 px-3 text-right text-xs">
+                              {(() => { const q5 = classFilter ? (t.classQ5Rates[classFilter] ?? null) : t.q5_yes_rate; return q5 != null ? <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${q5 >= 50 ? 'bg-success/10 text-success' : 'bg-crimson/10 text-crimson'}`}>{q5}%</span> : <span className="text-text-muted">–</span>; })()}
+                            </td>
                             <td className="py-2.5 px-3 text-right">
                               <span className={`text-sm font-bold px-2 py-0.5 rounded-full ${scoreBadgeClass(t.total_avg)}`}>
                                 {t.total_avg.toFixed(2)}
