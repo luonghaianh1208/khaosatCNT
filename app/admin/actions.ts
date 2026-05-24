@@ -540,7 +540,7 @@ export async function getReportData(sessionId?: string) {
     targetId = session?.id;
   }
 
-  if (!targetId) return { responses: [], homeroomResponses: [], completions: [], studentsByClass: [], teacherClassCounts: {} };
+  if (!targetId) return { responses: [], homeroomResponses: [], completions: [], studentsByClass: [], teacherClassCounts: {}, teacherClassAvgs: {} };
 
   const [
     { data: responses },
@@ -549,6 +549,7 @@ export async function getReportData(sessionId?: string) {
     { data: userClassJson },
     { data: classCounts },
     { data: teacherClassCountsJson },
+    { data: teacherClassAvgsJson },
   ] = await Promise.all([
     client
       .from('survey_responses')
@@ -573,6 +574,8 @@ export async function getReportData(sessionId?: string) {
     client.rpc('get_class_student_counts'),
     // Authoritative teacher-class student counts via SQL aggregation — bypasses JS lookup
     client.rpc('get_teacher_class_student_counts', { p_session_id: targetId }),
+    // Per-class q1-q4 averages and q5 rate — authoritative SQL computation
+    client.rpc('get_teacher_class_avgs', { p_session_id: targetId }),
   ]);
 
   // Build user_id → class_name map from JSON aggregate
@@ -610,5 +613,8 @@ export async function getReportData(sessionId?: string) {
     completions: completions || [],
     studentsByClass,
     teacherClassCounts: Object.fromEntries(teacherClassCounts),
+    teacherClassAvgs: (teacherClassAvgsJson && typeof teacherClassAvgsJson === 'object')
+      ? teacherClassAvgsJson as Record<string, { q1: number; q2: number; q3: number; q4: number; total: number; q5_rate: number | null }>
+      : {} as Record<string, { q1: number; q2: number; q3: number; q4: number; total: number; q5_rate: number | null }>,
   };
 }

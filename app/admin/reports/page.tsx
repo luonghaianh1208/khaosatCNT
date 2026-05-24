@@ -130,13 +130,13 @@ export default function ReportsPage() {
     completions: any[];
     studentsByClass: { class_name: string; total: number }[];
     teacherClassCounts: Record<string, number>;
+    teacherClassAvgs: Record<string, { q1: number; q2: number; q3: number; q4: number; total: number; q5_rate: number | null }>;
   }) => {
-    type Acc = TeacherStats & { q1s: number; q2s: number; q3s: number; q4s: number; q5s: number; wantContinueCount: number; classSet: Set<string>; classQ1Sums: Record<string, number>; classQ2Sums: Record<string, number>; classQ3Sums: Record<string, number>; classQ4Sums: Record<string, number>; classQ5Sums: Record<string, number>; classWantContinueYes: Record<string, number>; classWantContinueCounts: Record<string, number> };
+    type Acc = TeacherStats & { q1s: number; q2s: number; q3s: number; q4s: number; q5s: number; wantContinueCount: number };
     const teacherMap = new Map<string, Acc>();
 
-    // Subject teachers — grouped by teacher_id (one row per teacher+subject, not per class)
+    // Subject teachers — grouped by teacher_id
     data.responses.forEach((r: any) => {
-      const cn = r.teacher_class_assignments?.class_name || 'N/A';
       const key = r.teacher_id;
       if (!teacherMap.has(key)) {
         teacherMap.set(key, {
@@ -148,26 +148,17 @@ export default function ReportsPage() {
           q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_yes_rate: 0,
           q1s: 0, q2s: 0, q3s: 0, q4s: 0, q5s: 0, wantContinueCount: 0,
           total_avg: 0, student_count: 0, classCounts: {}, classQ5Rates: {}, classAvgs: {}, is_homeroom: false,
-          classSet: new Set(), classQ1Sums: {}, classQ2Sums: {}, classQ3Sums: {}, classQ4Sums: {}, classQ5Sums: {}, classWantContinueYes: {}, classWantContinueCounts: {},
         });
       }
       const s = teacherMap.get(key)!;
-      s.classSet.add(cn);
-      s.classCounts[cn] = (s.classCounts[cn] || 0) + 1;
       s.q1s += r.q1_score || 0; s.q2s += r.q2_score || 0;
       s.q3s += r.q3_score || 0; s.q4s += r.q4_score || 0;
       s.q5s += r.q5_score || 0;
-      s.classQ1Sums[cn] = (s.classQ1Sums[cn] || 0) + (r.q1_score || 0);
-      s.classQ2Sums[cn] = (s.classQ2Sums[cn] || 0) + (r.q2_score || 0);
-      s.classQ3Sums[cn] = (s.classQ3Sums[cn] || 0) + (r.q3_score || 0);
-      s.classQ4Sums[cn] = (s.classQ4Sums[cn] || 0) + (r.q4_score || 0);
-      s.classQ5Sums[cn] = (s.classQ5Sums[cn] || 0) + (r.q5_score || 0);
       s.student_count++;
     });
 
     // Homeroom teachers — grouped by teacher_id
     data.homeroomResponses.forEach((r: any) => {
-      const cn = r.teacher_class_assignments?.class_name || 'N/A';
       const key = `hr-${r.teacher_id}`;
       if (!teacherMap.has(key)) {
         teacherMap.set(key, {
@@ -178,55 +169,43 @@ export default function ReportsPage() {
           q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_yes_rate: null,
           q1s: 0, q2s: 0, q3s: 0, q4s: 0, q5s: 0, wantContinueCount: 0,
           total_avg: 0, student_count: 0, classCounts: {}, classQ5Rates: {}, classAvgs: {}, is_homeroom: true,
-          classSet: new Set(), classQ1Sums: {}, classQ2Sums: {}, classQ3Sums: {}, classQ4Sums: {}, classQ5Sums: {}, classWantContinueYes: {}, classWantContinueCounts: {},
         });
       }
       const s = teacherMap.get(key)!;
-      s.classSet.add(cn);
-      s.classCounts[cn] = (s.classCounts[cn] || 0) + 1;
       s.q1s += r.q1_score || 0; s.q2s += r.q2_score || 0;
       s.q3s += r.q3_score || 0; s.q4s += r.q4_score || 0;
-      s.classQ1Sums[cn] = (s.classQ1Sums[cn] || 0) + (r.q1_score || 0);
-      s.classQ2Sums[cn] = (s.classQ2Sums[cn] || 0) + (r.q2_score || 0);
-      s.classQ3Sums[cn] = (s.classQ3Sums[cn] || 0) + (r.q3_score || 0);
-      s.classQ4Sums[cn] = (s.classQ4Sums[cn] || 0) + (r.q4_score || 0);
       if (r.want_continue !== null && r.want_continue !== undefined) {
-        const wc = r.want_continue ? 1 : 0;
-        s.q5s += wc;
+        s.q5s += r.want_continue ? 1 : 0;
         s.wantContinueCount++;
-        s.classWantContinueYes[cn] = (s.classWantContinueYes[cn] || 0) + wc;
-        s.classWantContinueCounts[cn] = (s.classWantContinueCounts[cn] || 0) + 1;
       }
       s.student_count++;
     });
 
-    // Calculate averages and derive classes array
+    // Calculate averages — derive classes and per-class data from authoritative SQL results
     const stats: TeacherStats[] = [];
     teacherMap.forEach((s) => {
-      s.classes = [...s.classSet].sort();
-      s.class_name = s.classes.join(', ');
-      // Override classCounts with authoritative DB-computed values
       const prefix = s.is_homeroom ? `hr__${s.teacher_id}__` : `${s.teacher_id}__`;
+
+      // Derive classes from SQL function keys — guaranteed consistent with DB
+      s.classes = Object.keys(data.teacherClassAvgs)
+        .filter((k) => k.startsWith(prefix))
+        .map((k) => k.slice(prefix.length))
+        .sort();
+      s.class_name = s.classes.join(', ');
+
+      // Per-class counts, avgs, q5 rates — all from SQL, no JS accumulation errors
       s.classCounts = {};
-      s.classQ5Rates = {};
       s.classAvgs = {};
+      s.classQ5Rates = {};
       s.classes.forEach((cls) => {
         s.classCounts[cls] = data.teacherClassCounts[`${prefix}${cls}`] ?? 0;
-        const cnt = s.classCounts[cls];
-        if (s.is_homeroom) {
-          const wcc = s.classWantContinueCounts[cls] || 0;
-          s.classQ5Rates[cls] = wcc > 0 ? Math.round(((s.classWantContinueYes[cls] || 0) / wcc) * 100) : null;
-        } else {
-          s.classQ5Rates[cls] = cnt > 0 ? Math.round(((s.classQ5Sums[cls] || 0) / cnt) * 100) : null;
-        }
-        if (cnt > 0) {
-          const q1 = round2((s.classQ1Sums[cls] || 0) / cnt);
-          const q2 = round2((s.classQ2Sums[cls] || 0) / cnt);
-          const q3 = round2((s.classQ3Sums[cls] || 0) / cnt);
-          const q4 = round2((s.classQ4Sums[cls] || 0) / cnt);
-          s.classAvgs[cls] = { q1, q2, q3, q4, total: round2((q1 + q2 + q3 + q4) / 4) };
+        const avgs = data.teacherClassAvgs[`${prefix}${cls}`];
+        if (avgs) {
+          s.classAvgs[cls] = { q1: round2(avgs.q1), q2: round2(avgs.q2), q3: round2(avgs.q3), q4: round2(avgs.q4), total: round2(avgs.total) };
+          s.classQ5Rates[cls] = avgs.q5_rate !== null ? Math.round(avgs.q5_rate) : null;
         }
       });
+
       if (s.student_count > 0) {
         s.q1_avg = round2(s.q1s / s.student_count);
         s.q2_avg = round2(s.q2s / s.student_count);
