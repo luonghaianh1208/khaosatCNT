@@ -627,8 +627,6 @@ export async function getReportData(sessionId?: string) {
     ? teacherSubjectOverviewJson as Record<string, { q1_sum: number; q2_sum: number; q3_sum: number; q4_sum: number; q5_sum: number; count: number }>
     : {} as Record<string, { q1_sum: number; q2_sum: number; q3_sum: number; q4_sum: number; q5_sum: number; count: number }>;
 
-  const subjectSet = new Set(Object.keys(teacherSubjectOverview).map((id) => teacherMetaMap.get(id)?.subject || 'N/A'));
-
   return {
     homeroomResponses: enrichedHomeroom,
     completions: completions || [],
@@ -637,11 +635,5 @@ export async function getReportData(sessionId?: string) {
     teacherClassAvgs,
     allTeachers: (allTeachers || []) as { id: string; full_name: string; subject: string; teacher_type: string }[],
     teacherSubjectOverview,
-    _debug: {
-      totalResponses: Object.values(teacherSubjectOverview).reduce((s, v) => s + v.count, 0),
-      teachersInTable: (allTeachers || []).length,
-      uniqueSubjects: [...subjectSet].sort(),
-      teacherClassAvgKeys: Object.keys(teacherClassAvgs).length,
-    },
   };
 }
