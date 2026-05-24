@@ -120,6 +120,7 @@ export default function ReportsPage() {
     homeroomResponses: any[];
     completions: any[];
     studentsByClass: { class_name: string; total: number }[];
+    teacherClassCounts: Record<string, number>;
   }) => {
     type Acc = TeacherStats & { q1s: number; q2s: number; q3s: number; q4s: number; q5s: number; classSet: Set<string> };
     const teacherMap = new Map<string, Acc>();
@@ -178,6 +179,12 @@ export default function ReportsPage() {
     teacherMap.forEach((s) => {
       s.classes = [...s.classSet].sort();
       s.class_name = s.classes.join(', ');
+      // Override classCounts with authoritative DB-computed values
+      const prefix = s.is_homeroom ? `hr__${s.teacher_id}__` : `${s.teacher_id}__`;
+      s.classCounts = {};
+      s.classes.forEach((cls) => {
+        s.classCounts[cls] = data.teacherClassCounts[`${prefix}${cls}`] ?? 0;
+      });
       if (s.student_count > 0) {
         s.q1_avg = round2(s.q1s / s.student_count);
         s.q2_avg = round2(s.q2s / s.student_count);

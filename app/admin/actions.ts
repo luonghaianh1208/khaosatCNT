@@ -548,6 +548,7 @@ export async function getReportData(sessionId?: string) {
     { data: completions },
     { data: userClassJson },
     { data: classCounts },
+    { data: teacherClassCountsJson },
   ] = await Promise.all([
     client
       .from('survey_responses')
@@ -570,6 +571,8 @@ export async function getReportData(sessionId?: string) {
     client.rpc('get_user_class_map_json'),
     // Aggregated counts — only 36 rows, no row-limit concern
     client.rpc('get_class_student_counts'),
+    // Authoritative teacher-class student counts via SQL aggregation — bypasses JS lookup
+    client.rpc('get_teacher_class_student_counts', { p_session_id: targetId }),
   ]);
 
   // Build user_id → class_name map from JSON aggregate
@@ -577,6 +580,15 @@ export async function getReportData(sessionId?: string) {
   if (userClassJson && typeof userClassJson === 'object') {
     Object.entries(userClassJson as Record<string, string>).forEach(([id, class_name]) => {
       userClassMap.set(id, class_name || 'N/A');
+    });
+  }
+
+  // Build teacher-class counts map: "teacherId__className" → count (for subjects)
+  // and "hr__teacherId__className" → count (for homeroom)
+  const teacherClassCounts = new Map<string, number>();
+  if (teacherClassCountsJson && typeof teacherClassCountsJson === 'object') {
+    Object.entries(teacherClassCountsJson as Record<string, number>).forEach(([key, cnt]) => {
+      teacherClassCounts.set(key, cnt);
     });
   }
 
@@ -597,5 +609,6 @@ export async function getReportData(sessionId?: string) {
     homeroomResponses: enriched(homeroomResponses || []),
     completions: completions || [],
     studentsByClass,
+    teacherClassCounts: Object.fromEntries(teacherClassCounts),
   };
 }
