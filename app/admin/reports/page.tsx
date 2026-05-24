@@ -126,36 +126,34 @@ export default function ReportsPage() {
   }, []);
 
   const processData = useCallback((data: {
-    responses: any[];
     homeroomResponses: any[];
     completions: any[];
     studentsByClass: { class_name: string; total: number }[];
     teacherClassCounts: Record<string, number>;
     teacherClassAvgs: Record<string, { q1: number; q2: number; q3: number; q4: number; total: number; q5_rate: number | null }>;
+    allTeachers: { id: string; full_name: string; subject: string; teacher_type: string }[];
+    teacherSubjectOverview: Record<string, { q1_sum: number; q2_sum: number; q3_sum: number; q4_sum: number; q5_sum: number; count: number }>;
   }) => {
     type Acc = TeacherStats & { q1s: number; q2s: number; q3s: number; q4s: number; q5s: number; wantContinueCount: number };
     const teacherMap = new Map<string, Acc>();
 
-    // Subject teachers — grouped by teacher_id
-    data.responses.forEach((r: any) => {
-      const key = r.teacher_id;
-      if (!teacherMap.has(key)) {
-        teacherMap.set(key, {
-          key, teacher_id: r.teacher_id,
-          teacher_name: r.teachers?.full_name || 'Unknown',
-          subject: r.teachers?.subject || 'N/A',
-          class_name: '', classes: [],
-          teacher_type: r.teachers?.teacher_type || 'bo_mon',
-          q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_yes_rate: 0,
-          q1s: 0, q2s: 0, q3s: 0, q4s: 0, q5s: 0, wantContinueCount: 0,
-          total_avg: 0, student_count: 0, classCounts: {}, classQ5Rates: {}, classAvgs: {}, is_homeroom: false,
-        });
-      }
-      const s = teacherMap.get(key)!;
-      s.q1s += r.q1_score || 0; s.q2s += r.q2_score || 0;
-      s.q3s += r.q3_score || 0; s.q4s += r.q4_score || 0;
-      s.q5s += r.q5_score || 0;
-      s.student_count++;
+    // Subject teachers — built from SQL aggregate (bypasses PostgREST row limit)
+    data.allTeachers.forEach((t) => {
+      const overview = data.teacherSubjectOverview[t.id];
+      if (!overview) return; // teacher has no responses in this session
+      teacherMap.set(t.id, {
+        key: t.id, teacher_id: t.id,
+        teacher_name: t.full_name || 'Unknown',
+        subject: t.subject || 'N/A',
+        class_name: '', classes: [],
+        teacher_type: t.teacher_type || 'bo_mon',
+        q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_yes_rate: 0,
+        q1s: overview.q1_sum, q2s: overview.q2_sum,
+        q3s: overview.q3_sum, q4s: overview.q4_sum, q5s: overview.q5_sum,
+        wantContinueCount: 0,
+        total_avg: 0, student_count: overview.count,
+        classCounts: {}, classQ5Rates: {}, classAvgs: {}, is_homeroom: false,
+      });
     });
 
     // Homeroom teachers — grouped by teacher_id

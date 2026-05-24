@@ -542,10 +542,9 @@ export async function getReportData(sessionId?: string) {
     targetId = session?.id;
   }
 
-  if (!targetId) return { responses: [], homeroomResponses: [], completions: [], studentsByClass: [], teacherClassCounts: {}, teacherClassAvgs: {} };
+  if (!targetId) return { homeroomResponses: [], completions: [], studentsByClass: [], teacherClassCounts: {}, teacherClassAvgs: {}, allTeachers: [], teacherSubjectOverview: {} };
 
   const [
-    { data: responses },
     { data: homeroomResponses },
     { data: completions },
     { data: userClassJson },
@@ -553,18 +552,14 @@ export async function getReportData(sessionId?: string) {
     { data: teacherClassCountsJson },
     { data: teacherClassAvgsJson },
     { data: allTeachers },
+    { data: teacherSubjectOverviewJson },
   ] = await Promise.all([
-    serviceClient
-      .from('survey_responses')
-      .select('*')
-      .eq('survey_session_id', targetId)
-      .not('teacher_id', 'is', null)
-      .range(0, 99999),
+    // homeroomResponses: max ~500 rows (one per student), safe under limit
     serviceClient
       .from('homeroom_responses')
       .select('*')
       .eq('survey_session_id', targetId)
-      .range(0, 99999),
+      .range(0, 9999),
     serviceClient
       .from('survey_completion')
       .select(`*, users(full_name, class_name)`)
@@ -579,8 +574,10 @@ export async function getReportData(sessionId?: string) {
     serviceClient.rpc('get_teacher_class_student_counts', { p_session_id: targetId }),
     // Per-class q1-q4 averages and q5 rate — authoritative SQL computation
     serviceClient.rpc('get_teacher_class_avgs', { p_session_id: targetId }),
-    // Fetch teachers directly — no join, no RLS, guaranteed complete
+    // Fetch teachers directly — ~190 rows, no row-limit concern
     serviceClient.from('teachers').select('id, full_name, subject, teacher_type'),
+    // Per-teacher overall score sums — ~190 rows, bypasses PostgREST row limit on survey_responses
+    serviceClient.rpc('get_teacher_subject_overview', { p_session_id: targetId }),
   ]);
 
   // Build user_id → class_name map from JSON aggregate
@@ -600,7 +597,7 @@ export async function getReportData(sessionId?: string) {
     });
   }
 
-  // Build teacher_id → {full_name, subject, teacher_type} directly from teachers table
+  // Build teacher_id → {full_name, subject, teacher_type} from teachers table
   const teacherMetaMap = new Map<string, { full_name: string; subject: string; teacher_type: string }>();
   (allTeachers || []).forEach((t: any) => {
     teacherMetaMap.set(t.id, {
@@ -610,12 +607,11 @@ export async function getReportData(sessionId?: string) {
     });
   });
 
-  const enriched = (arr: any[]) =>
-    arr.map((r: any) => ({
-      ...r,
-      teachers: teacherMetaMap.get(r.teacher_id) || r.teachers || null,
-      teacher_class_assignments: { class_name: userClassMap.get(r.user_id) || 'N/A' },
-    }));
+  const enrichedHomeroom = (homeroomResponses || []).map((r: any) => ({
+    ...r,
+    teachers: teacherMetaMap.get(r.teacher_id) || null,
+    teacher_class_assignments: { class_name: userClassMap.get(r.user_id) || 'N/A' },
+  }));
 
   // Total enrolled students per class — from pre-aggregated SECURITY DEFINER function
   const studentsByClass = (classCounts || []).map((r: any) => ({
@@ -623,27 +619,29 @@ export async function getReportData(sessionId?: string) {
     total: Number(r.total),
   }));
 
-  const enrichedResponses = enriched(responses || []);
-  const subjectSet = new Set(enrichedResponses.map((r: any) => r.teachers?.subject || 'N/A'));
+  const teacherClassAvgs = (teacherClassAvgsJson && typeof teacherClassAvgsJson === 'object')
+    ? teacherClassAvgsJson as Record<string, { q1: number; q2: number; q3: number; q4: number; total: number; q5_rate: number | null }>
+    : {} as Record<string, { q1: number; q2: number; q3: number; q4: number; total: number; q5_rate: number | null }>;
+
+  const teacherSubjectOverview = (teacherSubjectOverviewJson && typeof teacherSubjectOverviewJson === 'object')
+    ? teacherSubjectOverviewJson as Record<string, { q1_sum: number; q2_sum: number; q3_sum: number; q4_sum: number; q5_sum: number; count: number }>
+    : {} as Record<string, { q1_sum: number; q2_sum: number; q3_sum: number; q4_sum: number; q5_sum: number; count: number }>;
+
+  const subjectSet = new Set(Object.keys(teacherSubjectOverview).map((id) => teacherMetaMap.get(id)?.subject || 'N/A'));
 
   return {
-    responses: enrichedResponses,
-    homeroomResponses: enriched(homeroomResponses || []),
+    homeroomResponses: enrichedHomeroom,
     completions: completions || [],
     studentsByClass,
     teacherClassCounts: Object.fromEntries(teacherClassCounts),
-    teacherClassAvgs: (teacherClassAvgsJson && typeof teacherClassAvgsJson === 'object')
-      ? teacherClassAvgsJson as Record<string, { q1: number; q2: number; q3: number; q4: number; total: number; q5_rate: number | null }>
-      : {} as Record<string, { q1: number; q2: number; q3: number; q4: number; total: number; q5_rate: number | null }>,
+    teacherClassAvgs,
+    allTeachers: (allTeachers || []) as { id: string; full_name: string; subject: string; teacher_type: string }[],
+    teacherSubjectOverview,
     _debug: {
-      totalResponses: enrichedResponses.length,
+      totalResponses: Object.values(teacherSubjectOverview).reduce((s, v) => s + v.count, 0),
       teachersInTable: (allTeachers || []).length,
       uniqueSubjects: [...subjectSet].sort(),
-      teacherClassAvgKeys: Object.keys(
-        (teacherClassAvgsJson && typeof teacherClassAvgsJson === 'object')
-          ? teacherClassAvgsJson as Record<string, unknown>
-          : {}
-      ).length,
+      teacherClassAvgKeys: Object.keys(teacherClassAvgs).length,
     },
   };
 }
