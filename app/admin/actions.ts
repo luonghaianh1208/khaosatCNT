@@ -552,16 +552,17 @@ export async function getReportData(sessionId?: string) {
     { data: classCounts },
     { data: teacherClassCountsJson },
     { data: teacherClassAvgsJson },
+    { data: teacherAssignments },
   ] = await Promise.all([
     serviceClient
       .from('survey_responses')
-      .select(`*, teachers(full_name, subject, teacher_type)`)
+      .select('*')
       .eq('survey_session_id', targetId)
       .not('teacher_id', 'is', null)
       .range(0, 99999),
     serviceClient
       .from('homeroom_responses')
-      .select(`*, teachers(full_name, subject, teacher_type)`)
+      .select('*')
       .eq('survey_session_id', targetId)
       .range(0, 99999),
     serviceClient
@@ -578,6 +579,11 @@ export async function getReportData(sessionId?: string) {
     serviceClient.rpc('get_teacher_class_student_counts', { p_session_id: targetId }),
     // Per-class q1-q4 averages and q5 rate — authoritative SQL computation
     serviceClient.rpc('get_teacher_class_avgs', { p_session_id: targetId }),
+    // Teacher metadata by assignment — authoritative source for name/subject/type
+    serviceClient
+      .from('teacher_class_assignments')
+      .select('teacher_id, teachers(full_name, subject, teacher_type)')
+      .eq('survey_session_id', targetId),
   ]);
 
   // Build user_id → class_name map from JSON aggregate
@@ -597,9 +603,22 @@ export async function getReportData(sessionId?: string) {
     });
   }
 
+  // Build teacher_id → {full_name, subject, teacher_type} from assignments
+  const teacherMetaMap = new Map<string, { full_name: string; subject: string; teacher_type: string }>();
+  (teacherAssignments || []).forEach((a: any) => {
+    if (a.teacher_id && a.teachers && !teacherMetaMap.has(a.teacher_id)) {
+      teacherMetaMap.set(a.teacher_id, {
+        full_name: a.teachers.full_name || 'Unknown',
+        subject: a.teachers.subject || 'N/A',
+        teacher_type: a.teachers.teacher_type || 'bo_mon',
+      });
+    }
+  });
+
   const enriched = (arr: any[]) =>
     arr.map((r: any) => ({
       ...r,
+      teachers: teacherMetaMap.get(r.teacher_id) || r.teachers || null,
       teacher_class_assignments: { class_name: userClassMap.get(r.user_id) || 'N/A' },
     }));
 
