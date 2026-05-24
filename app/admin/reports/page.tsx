@@ -103,6 +103,7 @@ export default function ReportsPage() {
   const [openFeedbacks, setOpenFeedbacks] = useState<OpenFeedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<{ totalResponses: number; teachersInTable: number; uniqueSubjects: string[]; teacherClassAvgKeys: number } | null>(null);
 
   // Tab & filter state
   const [activeTab, setActiveTab] = useState('overview');
@@ -245,6 +246,7 @@ export default function ReportsPage() {
     setLoading(true);
     try {
       const data = await getReportData(sid);
+      if ((data as any)._debug) setDebugInfo((data as any)._debug);
       processData(data);
     } catch { /* silent */ }
     setLoading(false);
@@ -438,6 +440,16 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-5">
+      {/* Debug panel — remove after diagnosis */}
+      {debugInfo && (
+        <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-3 text-xs font-mono text-yellow-900 space-y-1">
+          <div className="font-bold text-yellow-800">🔍 Debug Info (tạm thời)</div>
+          <div>Tổng responses: <strong>{debugInfo.totalResponses}</strong></div>
+          <div>Giáo viên trong teachers table: <strong>{debugInfo.teachersInTable}</strong></div>
+          <div>teacherClassAvg keys: <strong>{debugInfo.teacherClassAvgKeys}</strong></div>
+          <div>Môn học từ responses: <strong>{debugInfo.uniqueSubjects.join(', ') || '(none)'}</strong></div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-wrap gap-3 items-center justify-between">
         <div className="flex flex-wrap items-center gap-3">

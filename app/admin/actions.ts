@@ -623,8 +623,11 @@ export async function getReportData(sessionId?: string) {
     total: Number(r.total),
   }));
 
+  const enrichedResponses = enriched(responses || []);
+  const subjectSet = new Set(enrichedResponses.map((r: any) => r.teachers?.subject || 'N/A'));
+
   return {
-    responses: enriched(responses || []),
+    responses: enrichedResponses,
     homeroomResponses: enriched(homeroomResponses || []),
     completions: completions || [],
     studentsByClass,
@@ -632,5 +635,15 @@ export async function getReportData(sessionId?: string) {
     teacherClassAvgs: (teacherClassAvgsJson && typeof teacherClassAvgsJson === 'object')
       ? teacherClassAvgsJson as Record<string, { q1: number; q2: number; q3: number; q4: number; total: number; q5_rate: number | null }>
       : {} as Record<string, { q1: number; q2: number; q3: number; q4: number; total: number; q5_rate: number | null }>,
+    _debug: {
+      totalResponses: enrichedResponses.length,
+      teachersInTable: (allTeachers || []).length,
+      uniqueSubjects: [...subjectSet].sort(),
+      teacherClassAvgKeys: Object.keys(
+        (teacherClassAvgsJson && typeof teacherClassAvgsJson === 'object')
+          ? teacherClassAvgsJson as Record<string, unknown>
+          : {}
+      ).length,
+    },
   };
 }
