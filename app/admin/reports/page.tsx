@@ -30,6 +30,7 @@ interface TeacherStats {
   total_avg: number;
   student_count: number;
   classCounts: Record<string, number>;
+  classQ5Rates: Record<string, number | null>;
   is_homeroom: boolean;
 }
 
@@ -122,7 +123,7 @@ export default function ReportsPage() {
     studentsByClass: { class_name: string; total: number }[];
     teacherClassCounts: Record<string, number>;
   }) => {
-    type Acc = TeacherStats & { q1s: number; q2s: number; q3s: number; q4s: number; q5s: number; wantContinueCount: number; classSet: Set<string> };
+    type Acc = TeacherStats & { q1s: number; q2s: number; q3s: number; q4s: number; q5s: number; wantContinueCount: number; classSet: Set<string>; classQ5Sums: Record<string, number>; classWantContinueYes: Record<string, number>; classWantContinueCounts: Record<string, number> };
     const teacherMap = new Map<string, Acc>();
 
     // Subject teachers — grouped by teacher_id (one row per teacher+subject, not per class)
@@ -138,8 +139,8 @@ export default function ReportsPage() {
           teacher_type: r.teachers?.teacher_type || 'bo_mon',
           q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_yes_rate: 0,
           q1s: 0, q2s: 0, q3s: 0, q4s: 0, q5s: 0, wantContinueCount: 0,
-          total_avg: 0, student_count: 0, classCounts: {}, is_homeroom: false,
-          classSet: new Set(),
+          total_avg: 0, student_count: 0, classCounts: {}, classQ5Rates: {}, is_homeroom: false,
+          classSet: new Set(), classQ5Sums: {}, classWantContinueYes: {}, classWantContinueCounts: {},
         });
       }
       const s = teacherMap.get(key)!;
@@ -147,7 +148,9 @@ export default function ReportsPage() {
       s.classCounts[cn] = (s.classCounts[cn] || 0) + 1;
       s.q1s += r.q1_score || 0; s.q2s += r.q2_score || 0;
       s.q3s += r.q3_score || 0; s.q4s += r.q4_score || 0;
-      s.q5s += r.q5_score || 0; s.student_count++;
+      s.q5s += r.q5_score || 0;
+      s.classQ5Sums[cn] = (s.classQ5Sums[cn] || 0) + (r.q5_score || 0);
+      s.student_count++;
     });
 
     // Homeroom teachers — grouped by teacher_id
@@ -162,8 +165,8 @@ export default function ReportsPage() {
           teacher_type: 'chu_nhiem',
           q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_yes_rate: null,
           q1s: 0, q2s: 0, q3s: 0, q4s: 0, q5s: 0, wantContinueCount: 0,
-          total_avg: 0, student_count: 0, classCounts: {}, is_homeroom: true,
-          classSet: new Set(),
+          total_avg: 0, student_count: 0, classCounts: {}, classQ5Rates: {}, is_homeroom: true,
+          classSet: new Set(), classQ5Sums: {}, classWantContinueYes: {}, classWantContinueCounts: {},
         });
       }
       const s = teacherMap.get(key)!;
@@ -172,8 +175,11 @@ export default function ReportsPage() {
       s.q1s += r.q1_score || 0; s.q2s += r.q2_score || 0;
       s.q3s += r.q3_score || 0; s.q4s += r.q4_score || 0;
       if (r.want_continue !== null && r.want_continue !== undefined) {
-        s.q5s += r.want_continue ? 1 : 0;
+        const wc = r.want_continue ? 1 : 0;
+        s.q5s += wc;
         s.wantContinueCount++;
+        s.classWantContinueYes[cn] = (s.classWantContinueYes[cn] || 0) + wc;
+        s.classWantContinueCounts[cn] = (s.classWantContinueCounts[cn] || 0) + 1;
       }
       s.student_count++;
     });
@@ -186,8 +192,16 @@ export default function ReportsPage() {
       // Override classCounts with authoritative DB-computed values
       const prefix = s.is_homeroom ? `hr__${s.teacher_id}__` : `${s.teacher_id}__`;
       s.classCounts = {};
+      s.classQ5Rates = {};
       s.classes.forEach((cls) => {
         s.classCounts[cls] = data.teacherClassCounts[`${prefix}${cls}`] ?? 0;
+        const cnt = s.classCounts[cls];
+        if (s.is_homeroom) {
+          const wcc = s.classWantContinueCounts[cls] || 0;
+          s.classQ5Rates[cls] = wcc > 0 ? Math.round(((s.classWantContinueYes[cls] || 0) / wcc) * 100) : null;
+        } else {
+          s.classQ5Rates[cls] = cnt > 0 ? Math.round(((s.classQ5Sums[cls] || 0) / cnt) * 100) : null;
+        }
       });
       if (s.student_count > 0) {
         s.q1_avg = round2(s.q1s / s.student_count);
@@ -688,10 +702,7 @@ export default function ReportsPage() {
                                 <td key={qi} className="py-2.5 px-3 text-right text-xs">{v > 0 ? v.toFixed(2) : '–'}</td>
                               ))}
                               <td className="py-2.5 px-3 text-right text-xs">
-                                {t.q5_yes_rate != null
-                                  ? <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${t.q5_yes_rate >= 50 ? 'bg-success/10 text-success' : 'bg-crimson/10 text-crimson'}`}>{t.q5_yes_rate}%</span>
-                                  : <span className="text-text-muted">–</span>
-                                }
+                                {(() => { const q5 = classFilter ? (t.classQ5Rates[classFilter] ?? null) : t.q5_yes_rate; return q5 != null ? <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${q5 >= 50 ? 'bg-success/10 text-success' : 'bg-crimson/10 text-crimson'}`}>{q5}%</span> : <span className="text-text-muted">–</span>; })()}
                               </td>
                               <td className="py-2.5 px-3 text-right">
                                 <span className={`text-sm font-bold px-2 py-0.5 rounded-full ${scoreBadgeClass(t.total_avg)}`}>
@@ -753,20 +764,20 @@ export default function ReportsPage() {
                           </span>
                         </div>
                       ))}
-                      {selectedTeacher.q5_yes_rate != null && (
+                      {(() => { const q5d = classFilter ? (selectedTeacher.classQ5Rates[classFilter] ?? null) : selectedTeacher.q5_yes_rate; return q5d != null ? (
                         <div className="flex items-center gap-2 pt-1 border-t border-border mt-1">
                           <span className="text-xs text-text-muted w-12">Câu 5</span>
                           <div className="flex-1 bg-border rounded-full h-1.5 overflow-hidden">
                             <div
                               className="h-1.5 rounded-full"
-                              style={{ width: `${selectedTeacher.q5_yes_rate}%`, backgroundColor: selectedTeacher.q5_yes_rate >= 50 ? SCORE_COLORS.great : SCORE_COLORS.bad }}
+                              style={{ width: `${q5d}%`, backgroundColor: q5d >= 50 ? SCORE_COLORS.great : SCORE_COLORS.bad }}
                             />
                           </div>
-                          <span className={`text-xs font-semibold w-8 text-right ${selectedTeacher.q5_yes_rate >= 50 ? 'text-success' : 'text-crimson'}`}>
-                            {selectedTeacher.q5_yes_rate}% Có
+                          <span className={`text-xs font-semibold w-8 text-right ${q5d >= 50 ? 'text-success' : 'text-crimson'}`}>
+                            {q5d}% Có
                           </span>
                         </div>
-                      )}
+                      ) : null; })()}
                     </div>
                   </Card>
                 )}
