@@ -31,6 +31,7 @@ interface TeacherStats {
   student_count: number;
   classCounts: Record<string, number>;
   classQ5Rates: Record<string, number | null>;
+  classAvgs: Record<string, { q1: number; q2: number; q3: number; q4: number; total: number }>;
   is_homeroom: boolean;
 }
 
@@ -58,6 +59,13 @@ function scoreBadgeClass(s: number) {
 }
 
 function round2(n: number) { return Math.round(n * 100) / 100; }
+
+function getEffective(t: TeacherStats, cls: string): TeacherStats {
+  if (!cls) return t;
+  const ca = t.classAvgs[cls];
+  if (!ca) return t;
+  return { ...t, q1_avg: ca.q1, q2_avg: ca.q2, q3_avg: ca.q3, q4_avg: ca.q4, total_avg: ca.total };
+}
 
 // ─── Custom tooltip ───────────────────────────────────────────────────────────
 
@@ -123,7 +131,7 @@ export default function ReportsPage() {
     studentsByClass: { class_name: string; total: number }[];
     teacherClassCounts: Record<string, number>;
   }) => {
-    type Acc = TeacherStats & { q1s: number; q2s: number; q3s: number; q4s: number; q5s: number; wantContinueCount: number; classSet: Set<string>; classQ5Sums: Record<string, number>; classWantContinueYes: Record<string, number>; classWantContinueCounts: Record<string, number> };
+    type Acc = TeacherStats & { q1s: number; q2s: number; q3s: number; q4s: number; q5s: number; wantContinueCount: number; classSet: Set<string>; classQ1Sums: Record<string, number>; classQ2Sums: Record<string, number>; classQ3Sums: Record<string, number>; classQ4Sums: Record<string, number>; classQ5Sums: Record<string, number>; classWantContinueYes: Record<string, number>; classWantContinueCounts: Record<string, number> };
     const teacherMap = new Map<string, Acc>();
 
     // Subject teachers — grouped by teacher_id (one row per teacher+subject, not per class)
@@ -139,8 +147,8 @@ export default function ReportsPage() {
           teacher_type: r.teachers?.teacher_type || 'bo_mon',
           q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_yes_rate: 0,
           q1s: 0, q2s: 0, q3s: 0, q4s: 0, q5s: 0, wantContinueCount: 0,
-          total_avg: 0, student_count: 0, classCounts: {}, classQ5Rates: {}, is_homeroom: false,
-          classSet: new Set(), classQ5Sums: {}, classWantContinueYes: {}, classWantContinueCounts: {},
+          total_avg: 0, student_count: 0, classCounts: {}, classQ5Rates: {}, classAvgs: {}, is_homeroom: false,
+          classSet: new Set(), classQ1Sums: {}, classQ2Sums: {}, classQ3Sums: {}, classQ4Sums: {}, classQ5Sums: {}, classWantContinueYes: {}, classWantContinueCounts: {},
         });
       }
       const s = teacherMap.get(key)!;
@@ -149,6 +157,10 @@ export default function ReportsPage() {
       s.q1s += r.q1_score || 0; s.q2s += r.q2_score || 0;
       s.q3s += r.q3_score || 0; s.q4s += r.q4_score || 0;
       s.q5s += r.q5_score || 0;
+      s.classQ1Sums[cn] = (s.classQ1Sums[cn] || 0) + (r.q1_score || 0);
+      s.classQ2Sums[cn] = (s.classQ2Sums[cn] || 0) + (r.q2_score || 0);
+      s.classQ3Sums[cn] = (s.classQ3Sums[cn] || 0) + (r.q3_score || 0);
+      s.classQ4Sums[cn] = (s.classQ4Sums[cn] || 0) + (r.q4_score || 0);
       s.classQ5Sums[cn] = (s.classQ5Sums[cn] || 0) + (r.q5_score || 0);
       s.student_count++;
     });
@@ -165,8 +177,8 @@ export default function ReportsPage() {
           teacher_type: 'chu_nhiem',
           q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_yes_rate: null,
           q1s: 0, q2s: 0, q3s: 0, q4s: 0, q5s: 0, wantContinueCount: 0,
-          total_avg: 0, student_count: 0, classCounts: {}, classQ5Rates: {}, is_homeroom: true,
-          classSet: new Set(), classQ5Sums: {}, classWantContinueYes: {}, classWantContinueCounts: {},
+          total_avg: 0, student_count: 0, classCounts: {}, classQ5Rates: {}, classAvgs: {}, is_homeroom: true,
+          classSet: new Set(), classQ1Sums: {}, classQ2Sums: {}, classQ3Sums: {}, classQ4Sums: {}, classQ5Sums: {}, classWantContinueYes: {}, classWantContinueCounts: {},
         });
       }
       const s = teacherMap.get(key)!;
@@ -174,6 +186,10 @@ export default function ReportsPage() {
       s.classCounts[cn] = (s.classCounts[cn] || 0) + 1;
       s.q1s += r.q1_score || 0; s.q2s += r.q2_score || 0;
       s.q3s += r.q3_score || 0; s.q4s += r.q4_score || 0;
+      s.classQ1Sums[cn] = (s.classQ1Sums[cn] || 0) + (r.q1_score || 0);
+      s.classQ2Sums[cn] = (s.classQ2Sums[cn] || 0) + (r.q2_score || 0);
+      s.classQ3Sums[cn] = (s.classQ3Sums[cn] || 0) + (r.q3_score || 0);
+      s.classQ4Sums[cn] = (s.classQ4Sums[cn] || 0) + (r.q4_score || 0);
       if (r.want_continue !== null && r.want_continue !== undefined) {
         const wc = r.want_continue ? 1 : 0;
         s.q5s += wc;
@@ -193,6 +209,7 @@ export default function ReportsPage() {
       const prefix = s.is_homeroom ? `hr__${s.teacher_id}__` : `${s.teacher_id}__`;
       s.classCounts = {};
       s.classQ5Rates = {};
+      s.classAvgs = {};
       s.classes.forEach((cls) => {
         s.classCounts[cls] = data.teacherClassCounts[`${prefix}${cls}`] ?? 0;
         const cnt = s.classCounts[cls];
@@ -201,6 +218,13 @@ export default function ReportsPage() {
           s.classQ5Rates[cls] = wcc > 0 ? Math.round(((s.classWantContinueYes[cls] || 0) / wcc) * 100) : null;
         } else {
           s.classQ5Rates[cls] = cnt > 0 ? Math.round(((s.classQ5Sums[cls] || 0) / cnt) * 100) : null;
+        }
+        if (cnt > 0) {
+          const q1 = round2((s.classQ1Sums[cls] || 0) / cnt);
+          const q2 = round2((s.classQ2Sums[cls] || 0) / cnt);
+          const q3 = round2((s.classQ3Sums[cls] || 0) / cnt);
+          const q4 = round2((s.classQ4Sums[cls] || 0) / cnt);
+          s.classAvgs[cls] = { q1, q2, q3, q4, total: round2((q1 + q2 + q3 + q4) / 4) };
         }
       });
       if (s.student_count > 0) {
@@ -272,6 +296,7 @@ export default function ReportsPage() {
         if (search && !t.teacher_name.toLowerCase().includes(search.toLowerCase())) return false;
         return true;
       })
+      .map((t) => getEffective(t, classFilter))
       .sort((a, b) => {
         const av = (a as any)[sortField] ?? 0;
         const bv = (b as any)[sortField] ?? 0;
@@ -357,16 +382,20 @@ export default function ReportsPage() {
     return classSubmitChart.filter((c) => c.cls === classFilter);
   }, [classSubmitChart, classFilter]);
 
+  const effectiveSelectedTeacher = useMemo(
+    () => selectedTeacher ? getEffective(selectedTeacher, classFilter) : null,
+    [selectedTeacher, classFilter]
+  );
+
   const radarData = useMemo(() => {
-    if (!selectedTeacher) return [];
-    // Q5 là yes/no nên không đưa vào radar 1-10
+    if (!effectiveSelectedTeacher) return [];
     return [
-      { subject: 'Câu 1', A: selectedTeacher.q1_avg, fullMark: 10 },
-      { subject: 'Câu 2', A: selectedTeacher.q2_avg, fullMark: 10 },
-      { subject: 'Câu 3', A: selectedTeacher.q3_avg, fullMark: 10 },
-      { subject: 'Câu 4', A: selectedTeacher.q4_avg, fullMark: 10 },
+      { subject: 'Câu 1', A: effectiveSelectedTeacher.q1_avg, fullMark: 10 },
+      { subject: 'Câu 2', A: effectiveSelectedTeacher.q2_avg, fullMark: 10 },
+      { subject: 'Câu 3', A: effectiveSelectedTeacher.q3_avg, fullMark: 10 },
+      { subject: 'Câu 4', A: effectiveSelectedTeacher.q4_avg, fullMark: 10 },
     ];
-  }, [selectedTeacher]);
+  }, [effectiveSelectedTeacher]);
 
   // ─── Sorting ──────────────────────────────────────────────────────────────
 
@@ -721,23 +750,23 @@ export default function ReportsPage() {
                 </div>
 
                 {/* Radar detail panel */}
-                {selectedTeacher && (
+                {effectiveSelectedTeacher && (
                   <Card>
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h3 className="text-sm font-semibold text-text-primary">{selectedTeacher.teacher_name}</h3>
+                        <h3 className="text-sm font-semibold text-text-primary">{effectiveSelectedTeacher.teacher_name}</h3>
                         <p className="text-xs text-text-muted mt-0.5">
-                          {selectedTeacher.subject} · {selectedTeacher.classes.join(', ')}
+                          {effectiveSelectedTeacher.subject} · {effectiveSelectedTeacher.classes.join(', ')}
                         </p>
                       </div>
                       <button onClick={() => setSelectedTeacher(null)} className="text-text-muted hover:text-text-primary text-xl leading-none -mt-1">×</button>
                     </div>
 
                     <div className="text-center mb-4">
-                      <span className={`text-3xl font-bold px-4 py-1 rounded-full ${scoreBadgeClass(selectedTeacher.total_avg)}`}>
-                        {selectedTeacher.total_avg.toFixed(2)}
+                      <span className={`text-3xl font-bold px-4 py-1 rounded-full ${scoreBadgeClass(effectiveSelectedTeacher.total_avg)}`}>
+                        {effectiveSelectedTeacher.total_avg.toFixed(2)}
                       </span>
-                      <p className="text-xs text-text-muted mt-1.5">Điểm TB / 10 · {classFilter ? (selectedTeacher.classCounts[classFilter] ?? 0) : selectedTeacher.student_count} HS đánh giá</p>
+                      <p className="text-xs text-text-muted mt-1.5">Điểm TB / 10 · {classFilter ? (effectiveSelectedTeacher.classCounts[classFilter] ?? 0) : effectiveSelectedTeacher.student_count} HS đánh giá</p>
                     </div>
 
                     <ResponsiveContainer width="100%" height={200}>
@@ -764,7 +793,7 @@ export default function ReportsPage() {
                           </span>
                         </div>
                       ))}
-                      {(() => { const q5d = classFilter ? (selectedTeacher.classQ5Rates[classFilter] ?? null) : selectedTeacher.q5_yes_rate; return q5d != null ? (
+                      {(() => { const q5d = classFilter ? (effectiveSelectedTeacher.classQ5Rates[classFilter] ?? null) : effectiveSelectedTeacher.q5_yes_rate; return q5d != null ? (
                         <div className="flex items-center gap-2 pt-1 border-t border-border mt-1">
                           <span className="text-xs text-text-muted w-12">Câu 5</span>
                           <div className="flex-1 bg-border rounded-full h-1.5 overflow-hidden">
