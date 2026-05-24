@@ -122,7 +122,7 @@ export default function ReportsPage() {
     studentsByClass: { class_name: string; total: number }[];
     teacherClassCounts: Record<string, number>;
   }) => {
-    type Acc = TeacherStats & { q1s: number; q2s: number; q3s: number; q4s: number; q5s: number; classSet: Set<string> };
+    type Acc = TeacherStats & { q1s: number; q2s: number; q3s: number; q4s: number; q5s: number; wantContinueCount: number; classSet: Set<string> };
     const teacherMap = new Map<string, Acc>();
 
     // Subject teachers — grouped by teacher_id (one row per teacher+subject, not per class)
@@ -137,7 +137,7 @@ export default function ReportsPage() {
           class_name: '', classes: [],
           teacher_type: r.teachers?.teacher_type || 'bo_mon',
           q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_yes_rate: 0,
-          q1s: 0, q2s: 0, q3s: 0, q4s: 0, q5s: 0,
+          q1s: 0, q2s: 0, q3s: 0, q4s: 0, q5s: 0, wantContinueCount: 0,
           total_avg: 0, student_count: 0, classCounts: {}, is_homeroom: false,
           classSet: new Set(),
         });
@@ -161,7 +161,7 @@ export default function ReportsPage() {
           subject: 'GVCN', class_name: '', classes: [],
           teacher_type: 'chu_nhiem',
           q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_yes_rate: null,
-          q1s: 0, q2s: 0, q3s: 0, q4s: 0, q5s: 0,
+          q1s: 0, q2s: 0, q3s: 0, q4s: 0, q5s: 0, wantContinueCount: 0,
           total_avg: 0, student_count: 0, classCounts: {}, is_homeroom: true,
           classSet: new Set(),
         });
@@ -171,6 +171,10 @@ export default function ReportsPage() {
       s.classCounts[cn] = (s.classCounts[cn] || 0) + 1;
       s.q1s += r.q1_score || 0; s.q2s += r.q2_score || 0;
       s.q3s += r.q3_score || 0; s.q4s += r.q4_score || 0;
+      if (r.want_continue !== null && r.want_continue !== undefined) {
+        s.q5s += r.want_continue ? 1 : 0;
+        s.wantContinueCount++;
+      }
       s.student_count++;
     });
 
@@ -192,7 +196,9 @@ export default function ReportsPage() {
         s.q4_avg = round2(s.q4s / s.student_count);
         s.total_avg = round2((s.q1_avg + s.q2_avg + s.q3_avg + s.q4_avg) / 4);
         if (s.is_homeroom) {
-          s.q5_yes_rate = null;
+          s.q5_yes_rate = s.wantContinueCount > 0
+            ? Math.round((s.q5s / s.wantContinueCount) * 100)
+            : null;
         } else {
           s.q5_yes_rate = Math.round((s.q5s / s.student_count) * 100);
         }
