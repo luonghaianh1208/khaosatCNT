@@ -29,6 +29,7 @@ interface TeacherStats {
   q5_yes_rate: number | null;
   total_avg: number;
   student_count: number;
+  classCounts: Record<string, number>;
   is_homeroom: boolean;
 }
 
@@ -136,12 +137,13 @@ export default function ReportsPage() {
           teacher_type: r.teachers?.teacher_type || 'bo_mon',
           q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_yes_rate: 0,
           q1s: 0, q2s: 0, q3s: 0, q4s: 0, q5s: 0,
-          total_avg: 0, student_count: 0, is_homeroom: false,
+          total_avg: 0, student_count: 0, classCounts: {}, is_homeroom: false,
           classSet: new Set(),
         });
       }
       const s = teacherMap.get(key)!;
       s.classSet.add(cn);
+      s.classCounts[cn] = (s.classCounts[cn] || 0) + 1;
       s.q1s += r.q1_score || 0; s.q2s += r.q2_score || 0;
       s.q3s += r.q3_score || 0; s.q4s += r.q4_score || 0;
       s.q5s += r.q5_score || 0; s.student_count++;
@@ -159,12 +161,13 @@ export default function ReportsPage() {
           teacher_type: 'chu_nhiem',
           q1_avg: 0, q2_avg: 0, q3_avg: 0, q4_avg: 0, q5_yes_rate: null,
           q1s: 0, q2s: 0, q3s: 0, q4s: 0, q5s: 0,
-          total_avg: 0, student_count: 0, is_homeroom: true,
+          total_avg: 0, student_count: 0, classCounts: {}, is_homeroom: true,
           classSet: new Set(),
         });
       }
       const s = teacherMap.get(key)!;
       s.classSet.add(cn);
+      s.classCounts[cn] = (s.classCounts[cn] || 0) + 1;
       s.q1s += r.q1_score || 0; s.q2s += r.q2_score || 0;
       s.q3s += r.q3_score || 0; s.q4s += r.q4_score || 0;
       s.student_count++;
@@ -682,7 +685,9 @@ export default function ReportsPage() {
                                   {t.total_avg.toFixed(2)}
                                 </span>
                               </td>
-                              <td className="py-2.5 px-3 text-right text-xs text-text-secondary">{t.student_count}</td>
+                              <td className="py-2.5 px-3 text-right text-xs text-text-secondary">
+                                {classFilter ? (t.classCounts[classFilter] ?? 0) : t.student_count}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -708,7 +713,7 @@ export default function ReportsPage() {
                       <span className={`text-3xl font-bold px-4 py-1 rounded-full ${scoreBadgeClass(selectedTeacher.total_avg)}`}>
                         {selectedTeacher.total_avg.toFixed(2)}
                       </span>
-                      <p className="text-xs text-text-muted mt-1.5">Điểm TB / 10 · {selectedTeacher.student_count} HS đánh giá</p>
+                      <p className="text-xs text-text-muted mt-1.5">Điểm TB / 10 · {classFilter ? (selectedTeacher.classCounts[classFilter] ?? 0) : selectedTeacher.student_count} HS đánh giá</p>
                     </div>
 
                     <ResponsiveContainer width="100%" height={200}>
@@ -812,7 +817,9 @@ export default function ReportsPage() {
                                 {t.total_avg.toFixed(2)}
                               </span>
                             </td>
-                            <td className="py-2.5 px-3 text-right text-text-secondary text-xs">{t.student_count}</td>
+                            <td className="py-2.5 px-3 text-right text-text-secondary text-xs">
+                              {classFilter ? (t.classCounts[classFilter] ?? 0) : t.student_count}
+                            </td>
                           </tr>
                         ))}
                     </tbody>
