@@ -529,6 +529,8 @@ export async function importHomeroom(rows: { class_name: string; full_name: stri
 
 export async function getReportData(sessionId?: string) {
   const client = createAdminClient();
+  // Use service role for data reads to bypass RLS — safe in server action context
+  const serviceClient = createServiceRoleClient();
 
   let targetId = sessionId;
   if (!targetId) {
@@ -551,31 +553,31 @@ export async function getReportData(sessionId?: string) {
     { data: teacherClassCountsJson },
     { data: teacherClassAvgsJson },
   ] = await Promise.all([
-    client
+    serviceClient
       .from('survey_responses')
       .select(`*, teachers(full_name, subject, teacher_type)`)
       .eq('survey_session_id', targetId)
       .not('teacher_id', 'is', null)
       .range(0, 99999),
-    client
+    serviceClient
       .from('homeroom_responses')
       .select(`*, teachers(full_name, subject, teacher_type)`)
       .eq('survey_session_id', targetId)
       .range(0, 99999),
-    client
+    serviceClient
       .from('survey_completion')
       .select(`*, users(full_name, class_name)`)
       .eq('survey_session_id', targetId)
       .eq('is_submitted', true)
       .range(0, 9999),
     // Returns single JSON object {user_id: class_name} — no row limit ever applies
-    client.rpc('get_user_class_map_json'),
+    serviceClient.rpc('get_user_class_map_json'),
     // Aggregated counts — only 36 rows, no row-limit concern
-    client.rpc('get_class_student_counts'),
+    serviceClient.rpc('get_class_student_counts'),
     // Authoritative teacher-class student counts via SQL aggregation — bypasses JS lookup
-    client.rpc('get_teacher_class_student_counts', { p_session_id: targetId }),
+    serviceClient.rpc('get_teacher_class_student_counts', { p_session_id: targetId }),
     // Per-class q1-q4 averages and q5 rate — authoritative SQL computation
-    client.rpc('get_teacher_class_avgs', { p_session_id: targetId }),
+    serviceClient.rpc('get_teacher_class_avgs', { p_session_id: targetId }),
   ]);
 
   // Build user_id → class_name map from JSON aggregate
