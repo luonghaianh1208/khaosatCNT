@@ -540,7 +540,7 @@ export async function getReportData(sessionId?: string) {
     targetId = session?.id;
   }
 
-  if (!targetId) return { responses: [], homeroomResponses: [], completions: [], studentsByClass: [] };
+  if (!targetId) return { responses: [], homeroomResponses: [], completions: [], studentsByClass: [], teacherClassCounts: {} };
 
   const [
     { data: responses },
